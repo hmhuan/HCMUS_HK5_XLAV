@@ -1,4 +1,4 @@
-#include "ColorTransformer.h"
+﻿#include "ColorTransformer.h"
 #include "Converter.h"
 #include <string>
 #include <iostream>
@@ -8,24 +8,29 @@ int main(int argc, char * argv[]) {
 	
 	Mat srcImg, destImg;
 	Mat hsv;
-	int result;
-	Converter cv;
-	ColorTransformer colorTf;
+	int result = -1; // Kết quả có thực hiện được không 
+	Converter converter; //Khởi tạo lớp Converter
+	ColorTransformer colorTf; //Khởi tạo lớp ColorTransfer
 	
 	string Command = string(argv[1]);
+	//???
 	srcImg = imread(argv[2]);
-	cout << srcImg.type() << endl;
+
 	if (Command == "--rgb2gray") {
-		result = cv.Convert(srcImg, destImg, 0);
+		//srcImg = imread(argv[2]);
+		//if (!srcImg.empty())
+			result = converter.Convert(srcImg, destImg, 0);
 	}
 	else if (Command == "--gray2rgb") {
-		result = cv.Convert(srcImg, destImg, 1);
+		
+		//if (!srcImg.empty())
+			result = converter.Convert(srcImg, destImg, 1);
 	}
 	else if (Command == "--rgb2hsv") {
-		result = cv.Convert(srcImg, destImg, 2);
+		result = converter.Convert(srcImg, destImg, 2);
 	}
 	else if (Command == "--hsv2rgb") {
-		result = cv.Convert(srcImg, destImg, 3);
+		result = converter.Convert(srcImg, destImg, 3);
 	}
 	else if (Command == "--bright") {
 		uchar b = atoi(argv[3]);
@@ -44,12 +49,16 @@ int main(int argc, char * argv[]) {
 	else if (Command == "--drawhist") {
 		result = colorTf.DrawHistogram(srcImg, destImg);
 	}
+
 	imshow("source image", srcImg);
+	cvtColor(srcImg, hsv, CV_HSV2BGR);
+	imshow("BGR", hsv);
 	if (result)
 		imshow("destination image", destImg);
-	imwrite("gray.jpeg", destImg);
-	cout << destImg.type() << endl;
+	imwrite("test1.png", destImg);
 	
+	cout << srcImg.type() <<" " <<srcImg.depth() << " " << srcImg.channels() << "\n";
+	cout << destImg.type() << " " << destImg.depth() << " " << destImg.channels() << "\n";
 	waitKey();
 	return 0;
 }

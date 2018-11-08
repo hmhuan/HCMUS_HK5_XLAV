@@ -3,15 +3,13 @@
 
 int ColorTransformer::ChangeBrightness(const Mat & sourceImage, Mat & destinationImage, uchar b)
 {
+	//Tạo bảng lookup
 	uchar lookup[256];
 	for (int i = 0; i < 256; i++)
 		lookup[i] = saturate_cast<uchar>(i + b);
-	/*for (int i = 0; i < 256; i++)
-		if (i + b > 255)
-			lookup[i] = 255;
-		else
-			lookup[i] = (uchar)(i + b);*/
+	
 	sourceImage.copyTo(destinationImage);
+
 	int width = destinationImage.cols, height = destinationImage.rows;
 	//nChannels là số kênh màu
 	int nChannels = destinationImage.channels();
@@ -22,9 +20,8 @@ int ColorTransformer::ChangeBrightness(const Mat & sourceImage, Mat & destinatio
 	for (int i = 0; i < height; i++, pData += widthStep) {
 		uchar * pRow = pData;
 		for (int j = 0; j < width; j++, pRow += nChannels) {
-			pRow[0] = lookup[(int)pRow[0]];
-			pRow[1] = lookup[(int)pRow[1]];
-			pRow[2] = lookup[(int)pRow[2]];
+			for (int k = 0; k < nChannels; k++)
+				pRow[k] = lookup[(int)pRow[k]];
 		}
 	}
 	
@@ -50,9 +47,8 @@ int ColorTransformer::ChangeContrast(const Mat & sourceImage, Mat & destinationI
 	for (int i = 0; i < height; i++, pData += widthStep) {
 		uchar * pRow = pData;
 		for (int j = 0; j < width; j++, pRow += nChannels) {
-			pRow[0] = lookup[(int)pRow[0]];
-			pRow[1] = lookup[(int)pRow[1]];
-			pRow[2] = lookup[(int)pRow[2]];
+			for (int k = 0; k < nChannels; k++)
+				pRow[k] = lookup[(int)pRow[k]];
 		}
 	}
 
