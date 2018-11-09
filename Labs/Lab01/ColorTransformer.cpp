@@ -128,7 +128,7 @@ int ColorTransformer::DrawHistogram(const Mat &sourceImage, Mat &histImage)
 
 			if (x > 0 && y > 0)
 			{
-				circle(histImage, Point(x, y), 2, color3b, -1);
+				//circle(histImage, Point(x, y), 2, color3b, -1);
 				line(histImage, Point(lastX, lastY), Point(x, y), color3b, 2, 8);
 				lastX = x;
 				lastY = y;
