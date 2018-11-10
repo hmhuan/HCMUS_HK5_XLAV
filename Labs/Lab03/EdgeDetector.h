@@ -28,9 +28,9 @@ public:
 		float Wy[9] = {	-1, -1, -1, 
 						0, 0, 0, 
 						1, 1, 1 };
-		float WLap[9] = {	1, 1, 1,
-							1, -8, 1,
-							1, 1, 1};
+		float WLap[9] = {1, 1, 1,
+						1, -8, 1,
+						1, 1, 1};
 		destinationImage.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = sourceImage.cols, height = sourceImage.rows;
@@ -85,11 +85,13 @@ public:
 			pData = (uchar*)destinationImage.data;
 			//
 			float sum;
-			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep) {
+			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep) 
+			{
 				pRow = pData;
 				pxRow = pxData;
 				pyRow = pyData;
-				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels) {
+				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels) 
+				{
 					x = pxRow[0] * BYTE_TO_FLOAT;
 					y = pyRow[0] * BYTE_TO_FLOAT;
 					sum = sqrtf(x * x + y * y);
@@ -107,25 +109,26 @@ public:
 			fX.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 			fY.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 
-			//Tính ma trận fX
+			//Tính ma trận fX đạo hàm của ảnh nguồn theo x
 			conv.SetKernel(kernelX, 3, 3);
 			conv.DoConvolution(sourceImage, fX);
-			//Tính ma trận fY
+			//Tính ma trận fY đạo hàm của ảnh nguồn theo y
 			conv.SetKernel(kernelY, 3, 3);
 			conv.DoConvolution(sourceImage, fY);
-
 			
+			//Con trỏ data của ma trận fX, fY, đích
 			pxData = (uchar*)fX.data;
 			pyData = (uchar*)fY.data;
 			pData = (uchar*)destinationImage.data;
-			//
 			
-			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep) {
+			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep) 
+			{
 				pRow = pData;
 				pxRow = pxData;
 				pyRow = pyData;
-				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels) {
-					//sum = (float)pxRow[0] +(float)pyRow[0];
+				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels) 
+				{
+					//sum = (float)pxRow[0] +(float)pyRow[0]; //????
 					x = pxRow[0] * BYTE_TO_FLOAT;
 					y = pyRow[0] * BYTE_TO_FLOAT;
 					sum = sqrtf(x * x + y * y);
@@ -133,11 +136,11 @@ public:
 				}
 			}
 			break;
-		case 3:
+		case 3: // Laplace với ma trận WLap
 			for (int i = 0; i < 9; i++)
 				kernelX.push_back(WLap[i]);
 			conv.SetKernel(kernelX, 3, 3);
-			conv.DoConvolution(sourceImage, destinationImage);
+			conv.DoConvolution(sourceImage, destinationImage); //Tích chập 
 			break;
 		default:
 			break;
@@ -148,4 +151,3 @@ public:
 	EdgeDetector() {};
 	~EdgeDetector() {};
 };
-

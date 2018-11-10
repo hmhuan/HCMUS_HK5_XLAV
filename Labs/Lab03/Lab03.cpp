@@ -45,12 +45,12 @@ int main(int argc, char * argv[])
 	{
 		result = ED.DetectEdge(srcImage, dstImage, 3, 3, 3); // kWidth = kHeight = 3
 	}
-	Mat sobel, laplace, median;
+	Mat sobel, laplace, median, gauss;
 	//Sobel(srcImage, sobel,srcImage.depth(), 1, 1, 3);
 	//Laplacian(srcImage, laplace, srcImage.depth(), 1);
-	medianBlur(srcImage, median, 5);
+	GaussianBlur(srcImage, gauss, Size(3, 3), 0.5f);
 	imshow("Source Image", srcImage);
-	imshow("Median", median);
+	imshow("Gauss", gauss);
 	//imshow("Sobel", sobel);
 	//imshow("Laplace", laplace);
 	if (result)

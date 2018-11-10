@@ -31,6 +31,10 @@ public:
 	*/
 	int DoConvolution(const Mat& sourceImage, Mat& destinationImage) 
 	{
+
+		uchar lookup[256];
+		for (int i = 0; i < 256; i++)
+			lookup[i] = (uchar)i;
 		//Kiểm tra ma trận nguồn
 		if (sourceImage.empty())
 			return 0;
@@ -66,9 +70,10 @@ public:
 			uchar * psRow = psData;
 			for (int j = 0; j < width; j++, psRow += nChannels, pRow += 1) {
 				sum = 0.0f;
+				//Tính tích chập
 				for (int k = 0; k < n; k++)
-					sum += psRow[offsets[k]] * _kernel[n - 1 - k]; //tich chap
-				pRow[0] = saturate_cast<uchar>(sum);
+					sum += psRow[offsets[k]] * _kernel[n - 1 - k];
+				pRow[0] = lookup[(int)sum];//saturate_cast<uchar>(sum);
 			}
 		}
 

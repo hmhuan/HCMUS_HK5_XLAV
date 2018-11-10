@@ -1,5 +1,7 @@
 ﻿#pragma once
+#define _USE_MATH_DEFINES
 #include "Convolution.h"
+#include  <math.h>
 
 void MySort(uchar a[],int n)
 {
@@ -37,6 +39,9 @@ public:
 		uchar * I;
 
 		int width, height, kHalfWidth, kHalfHeight, nChannels, widthStep;
+		float sigma = 0.5f, sigma2 = 2 * sigma * sigma; // sigma ->Tính 2 * sigma ^ 2
+		float s = 2 * M_PI * sigma * sigma; // Tính 2 * PI * sigma ^2
+		float sum, h;
 		uchar * pData, *psData, *pRow, *psRow;
 		int n;
 		
@@ -59,7 +64,6 @@ public:
 			nChannels = sourceImage.channels();
 			//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 			widthStep = sourceImage.step[0];
-
 
 			//Tạo bảng offsets
 			kHalfWidth = kWidth >> 1;
@@ -92,13 +96,28 @@ public:
 			break;
 		case 2:
 			//Tạo kernel với trường hợp lọc Gaussian
+			n = kHeight * kWidth;
+			kHalfWidth = kWidth >> 1;
+			kHalfHeight = kHeight >> 1;
+			sum = 0.0f;
+			//Tính kernel 
+			for (int y = -kHalfHeight; y <= kHalfHeight; y++)
+				for (int x = -kHalfWidth; x <= kHalfWidth; x++)
+				{
+					h = expf(-(y * y + x * x) / sigma2) / s;
+					sum += h;
+					kernel.push_back(h);
+				}
+			//Chuẩn hóa kernel 
+			for (int i = 0; i < n; i++)
+				kernel[i] /= sum;
+
 			conv.SetKernel(kernel, kWidth, kHeight);
 			return conv.DoConvolution(sourceImage, destinationImage);
 			break;
 		default:
 			break;
 		}
-		
 	};
 	Blur() {};
 	~Blur() {};
