@@ -1,69 +1,74 @@
 ﻿#include "ColorTransformer.h"
 
-int ColorTransformer::ChangeBrightness(const Mat &sourceImage, Mat &destinationImage, uchar b)
+
+int ColorTransformer::ChangeBrightness(const Mat & sourceImage, Mat & destinationImage, uchar b)
 {
 	//Tạo bảng lookup
 	uchar lookup[256];
 	for (int i = 0; i < 256; i++)
 		lookup[i] = saturate_cast<uchar>(i + b);
 
-	sourceImage.copyTo(destinationImage);
+	//Khởi tạo ảnh đích có kích thước và type giống ảnh nguồn
+	destinationImage.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 
-	int width = destinationImage.cols, height = destinationImage.rows;
+	//width là chiều rộng ảnh, height là chiều cao ảnh.
+	int width = sourceImage.cols, height = sourceImage.rows;
 	//nChannels là số kênh màu
-	int nChannels = destinationImage.channels();
+	int nChannels = sourceImage.channels();
 	//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
-	int widthStep = destinationImage.step[0];
+	int widthStep = sourceImage.step[0];
 	//pData là con trỏ quản lý vùng nhớ ảnh
-	uchar *pData = (uchar *)destinationImage.data;
-	for (int i = 0; i < height; i++, pData += widthStep)
-	{
-		uchar *pRow = pData;
-		for (int j = 0; j < width; j++, pRow += nChannels)
-		{
+	uchar* pData = (uchar*)destinationImage.data; //COn tro data cua anh dich
+	uchar* psData = (uchar*)sourceImage.data; //COn tro data cua anh nguon
+	for (int i = 0; i < height; i++, psData += widthStep, pData += widthStep) {
+		uchar * pRow = pData; //Con tro dong cua anh dich
+		uchar * psRow = psData;//Con tro dong cua anh nguon
+		for (int j = 0; j < width; j++, pRow += nChannels, psRow += nChannels) {
 			for (int k = 0; k < nChannels; k++)
-				pRow[k] = lookup[(int)pRow[k]];
+				pRow[k] = lookup[(int)psRow[k]];
 		}
 	}
-
+	if (destinationImage.empty())
+		return 0; //Loi 
 	return 1;
 }
 
-int ColorTransformer::ChangeContrast(const Mat &sourceImage, Mat &destinationImage, float c)
+int ColorTransformer::ChangeContrast(const Mat & sourceImage, Mat & destinationImage, float c)
 {
 	uchar lookup[256];
 	for (int i = 0; i < 256; i++)
 		lookup[i] = saturate_cast<uchar>(i * c);
-	//copy source vao destination
-	sourceImage.copyTo(destinationImage);
-	//width la so chieu dai anh <-> so cot
-	//height la chieu rong anh <-> so dong
-	int width = destinationImage.cols, height = destinationImage.rows;
+
+	//Khởi tạo ảnh đích có kích thước và type giống ảnh nguồn
+	destinationImage.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
+
+	int width = sourceImage.cols, height = sourceImage.rows;
 	//nChannels là số kênh màu
-	int nChannels = destinationImage.channels();
+	int nChannels = sourceImage.channels();
 	//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
-	int widthStep = destinationImage.step[0];
+	int widthStep = sourceImage.step[0];
 	//pData là con trỏ quản lý vùng nhớ ảnh
-	uchar *pData = (uchar *)destinationImage.data;
-	for (int i = 0; i < height; i++, pData += widthStep)
-	{
-		uchar *pRow = pData;
-		for (int j = 0; j < width; j++, pRow += nChannels)
-		{
+	uchar* pData = (uchar*)destinationImage.data; //COn tro data cua anh dich
+	uchar* psData = (uchar*)sourceImage.data; //COn tro data cua anh nguon
+	for (int i = 0; i < height; i++, psData += widthStep, pData += widthStep) {
+		uchar * pRow = pData; //Con tro dong cua anh dich
+		uchar * psRow = psData;//Con tro dong cua anh nguon
+		for (int j = 0; j < width; j++, pRow += nChannels, psRow += nChannels) {
 			for (int k = 0; k < nChannels; k++)
-				pRow[k] = lookup[(int)pRow[k]];
+				pRow[k] = lookup[(int)psRow[k]];
 		}
 	}
-
+	if (destinationImage.empty())
+		return 0; //Loi 
 	return 1;
 }
 
-int ColorTransformer::HistogramEqualization(const Mat &sourceImage, Mat &destinationImage)
+int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & destinationImage)
 {
 	return 0;
 }
 
-int ColorTransformer::CalcHistogram(const Mat &sourceImage, Mat &histogram)
+int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 {
 	histogram = Mat::zeros(3, 256, CV_32S);
 
@@ -84,23 +89,16 @@ int ColorTransformer::CalcHistogram(const Mat &sourceImage, Mat &histogram)
 			histogram.at<signed>(2, pRow[2])++;
 		}
 	}
-
-	// for (int i = 0; i < histogram.cols; i++)
-	// {
-	// 	printf("%d %d %d\t", histogram.at<signed>(0, i), histogram.at<signed>(1, i), histogram.at<signed>(2, i));
-	// }
-	// cout << endl;
-
 	return 1;
 }
 
-int ColorTransformer::DrawHistogram(const Mat &sourceImage, Mat &histImage)
+int ColorTransformer::DrawHistogram(const Mat & sourceImage, Mat & histImage)
 {
 	Mat histogram;
 	histImage = Mat::zeros(480, 640, CV_8UC3);
 	signed max_b = 0, max_g = 0, max_r = 0;
 	float coeff[3];
-	uchar color[3][3] = {255, 0, 0, 0, 255, 0, 0, 0, 255};
+	uchar color[3][3] = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
 	CalcHistogram(sourceImage, histogram);
 
@@ -128,7 +126,6 @@ int ColorTransformer::DrawHistogram(const Mat &sourceImage, Mat &histImage)
 
 			if (x > 0 && y > 0)
 			{
-				//circle(histImage, Point(x, y), 2, color3b, -1);
 				line(histImage, Point(lastX, lastY), Point(x, y), color3b, 1, 8);
 				lastX = x;
 				lastY = y;

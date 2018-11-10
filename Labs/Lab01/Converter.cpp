@@ -12,6 +12,7 @@ int Converter::RGB2GrayScale(const Mat & sourceImage, Mat & destinationImage)
 	//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 	int widthStep = sourceImage.step[0]; //so buoc cho anh nguon
 
+	//Tạo ảnh đích với kích thước ảnh nguồn và type là ảnh grayscale
 	destinationImage.create(height, width, CV_8UC1);
 	
 	//pData là con trỏ quản lý vùng nhớ ảnh
@@ -34,6 +35,7 @@ int Converter::RGB2GrayScale(const Mat & sourceImage, Mat & destinationImage)
 
 int Converter::GrayScale2RGB(const Mat & sourceImage, Mat & destinationImage)
 {
+	//Cần chỉnh lại return 0/1
 
 	int width = sourceImage.cols, height = sourceImage.rows;
 	//nChannels là số kênh màu
@@ -41,6 +43,7 @@ int Converter::GrayScale2RGB(const Mat & sourceImage, Mat & destinationImage)
 	//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 	int widthStep = sourceImage.step[0]; //so buoc cho anh nguon
 
+	//Tạo ảnh đích với kích thước như ảnh nguồn và type là ảnh color
 	destinationImage.create(height, width, CV_8UC3);
 	//pData là con trỏ quản lý vùng nhớ ảnh
 	uchar* pData = (uchar*)destinationImage.data; // con tro chay cho anh dich
@@ -55,9 +58,10 @@ int Converter::GrayScale2RGB(const Mat & sourceImage, Mat & destinationImage)
 			pRow[2] = psRow[0];
 		}
 	}
+	
 	return 1;
 }
-
+//Hàm tìm max trong 3 giá trị trả về kiểu float
 float max(float a, float b, float c) {
 	float max = a;
 	if (max < b)
@@ -66,7 +70,7 @@ float max(float a, float b, float c) {
 		max = c;
 	return max;
 }
-
+//Hàm tìm min trong 3 giá trị trả về kiểu float
 float min(float a, float b, float c) {
 	//return (a < b ? a : b) < c ? (a < b ? a : b) : c;
 	float min = a;
@@ -106,7 +110,7 @@ int Converter::RGB2HSV(const Mat & sourceImage, Mat & destinationImage)
 			fG = psRow[1] * BYTE_TO_FLOAT;
 			fR = psRow[2] * BYTE_TO_FLOAT;
 
-			//Tim V = Vmax, va Vmin
+			//Tim V = Vmax va Vmin
 			Vmax = max(fB, fG, fR);
 			Vmin = min(fB, fG, fR);
 			//Tim S
@@ -141,7 +145,7 @@ int Converter::HSV2RGB(const Mat & sourceImage, Mat & destinationImage)
 	//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 	int widthStep = sourceImage.step[0]; //so buoc cho anh nguon
 
-										 //Khởi tạo ảnh đích với kích thước như ảnh nguồn
+	//Khởi tạo ảnh đích với kích thước như ảnh nguồn
 	destinationImage.create(height, width, CV_8UC3);
 
 	float fC, fX, fM, fHbin, fH, fS, fV, fR, fG, fB;

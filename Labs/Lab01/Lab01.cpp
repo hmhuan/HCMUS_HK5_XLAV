@@ -13,17 +13,15 @@ int main(int argc, char * argv[]) {
 	ColorTransformer colorTf; //Khởi tạo lớp ColorTransfer
 	
 	string Command = string(argv[1]);
-	//???
-	srcImg = imread(argv[2]);
+	// flags < 0: Load anh voi dung dinh dang cua no
+	srcImg = imread(argv[2], -1);
+	
+	cout << srcImg.type() << " " << srcImg.depth() << " " << srcImg.channels() << "\n";
 
 	if (Command == "--rgb2gray") {
-		//srcImg = imread(argv[2]);
-		//if (!srcImg.empty())
 			result = converter.Convert(srcImg, destImg, 0);
 	}
 	else if (Command == "--gray2rgb") {
-		
-		//if (!srcImg.empty())
 			result = converter.Convert(srcImg, destImg, 1);
 	}
 	else if (Command == "--rgb2hsv") {
@@ -51,13 +49,13 @@ int main(int argc, char * argv[]) {
 	}
 
 	imshow("source image", srcImg);
-	cvtColor(srcImg, hsv, CV_HSV2BGR);
-	imshow("BGR", hsv);
+	//cvtColor(srcImg, hsv, );
+	//imshow("BGR", hsv);
 	if (result)
 		imshow("destination image", destImg);
-	imwrite("test1.png", destImg);
+	imwrite("gray.bmp", destImg);
 	
-	cout << srcImg.type() <<" " <<srcImg.depth() << " " << srcImg.channels() << "\n";
+	
 	cout << destImg.type() << " " << destImg.depth() << " " << destImg.channels() << "\n";
 	waitKey();
 	return 0;
