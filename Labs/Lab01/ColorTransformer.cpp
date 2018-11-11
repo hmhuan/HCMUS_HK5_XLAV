@@ -65,12 +65,21 @@ int ColorTransformer::ChangeContrast(const Mat & sourceImage, Mat & destinationI
 
 int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & destinationImage)
 {
-	Mat rgb, hsv, hist;
-	rgb = sourceImage.clone();
+	Mat src, hsv, hist;
 	Converter con;
-	// Convert source image (RGB) to HSV
-	con.Convert(rgb, hsv, 2);
-	CalcHistogram(hsv, hist);
+	src = sourceImage.clone();
+
+	if (src.channels() != 1)
+	{
+		// If source image is not grayscale, convert it (RGB) to HSV
+		con.Convert(src, hsv, 2);
+		CalcHistogram(hsv, hist);
+	}
+	else
+	{
+		CalcHistogram(src, hist);
+	}
+
 
 	for (int bin = 1; bin < hist.cols; bin++)
 		hist.at<signed>(2, bin) += hist.at<signed>(2, bin - 1);
@@ -86,8 +95,10 @@ int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & desti
 		}
 	}
 
-	// Convert result image (HSV) to RGB
-	con.Convert(hsv, destinationImage, 3);
+	if (src.channels() != 1)
+		con.Convert(hsv, destinationImage, 3);
+	else
+		destinationImage = src.clone();
 
 	return 1;
 }
@@ -108,11 +119,11 @@ int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 		uchar *pRow = pData;
 		for (int j = 0; j < width; j++, pRow += nChannels)
 		{
-			histogram.at<signed>(0, pRow[0])++;
-			if (sourceImage.channels() == 3)
+			histogram.at<signed>(2, pRow[2])++;
+			if (sourceImage.channels() != 1)
 			{
 				histogram.at<signed>(1, pRow[1])++;
-				histogram.at<signed>(2, pRow[2])++;
+				histogram.at<signed>(0, pRow[0])++;
 			}
 		}
 	}
@@ -140,21 +151,21 @@ int ColorTransformer::DrawHistogram(const Mat & sourceImage, Mat & histImage)
 	/// Find the maximum bin of each channel
 	for (int i = 0; i < histogram.cols; i++)
 	{
-		max_b = max(max_b, histogram.at<signed>(0, i));
-		if (sourceImage.channels() == 3)
+		max_r = max(max_r, histogram.at<signed>(2, i));
+		if (sourceImage.channels() != 1)
 		{
 			max_g = max(max_g, histogram.at<signed>(1, i));
-			max_r = max(max_r, histogram.at<signed>(2, i));
+			max_b = max(max_b, histogram.at<signed>(0, i));
 		}
 	}
 
 	/// The coefficient that multiply with value of each bin
 	/// to ensure the maximum height is the height of @histImage
-	coeff[0] = float(histImage.rows) / max_b;
-	if (sourceImage.channels() == 3)
+	coeff[2] = float(histImage.rows) / max_r;
+	if (sourceImage.channels() != 1)
 	{
 		coeff[1] = float(histImage.rows) / max_g;
-		coeff[2] = float(histImage.rows) / max_r;
+		coeff[0] = float(histImage.rows) / max_b;
 	}
 
 	// Have 256 bins, so the distance between 2 bins is @histImage.cols / 255
