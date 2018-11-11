@@ -7,11 +7,10 @@ using namespace std;
 int main(int argc, char * argv[])
 {
 	//srcImg: anh nguon - dstImg: anh dich
-
 	Mat srcImg, dstImg;
 	GeometricTransformer GTf;
-	
 
+	
 	string Command(argv[1]), Interpolate(argv[2]), fileImg(argv[3]);
 
 	srcImg = imread(fileImg, -1);
