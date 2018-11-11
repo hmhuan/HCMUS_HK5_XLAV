@@ -65,7 +65,31 @@ int ColorTransformer::ChangeContrast(const Mat & sourceImage, Mat & destinationI
 
 int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & destinationImage)
 {
-	return 0;
+	Mat rgb, hsv, hist;
+	rgb = sourceImage.clone();
+	Converter con;
+	// Convert source image (RGB) to HSV
+	con.Convert(rgb, hsv, 2);
+	CalcHistogram(hsv, hist);
+
+	for (int bin = 1; bin < hist.cols; bin++)
+		hist.at<signed>(2, bin) += hist.at<signed>(2, bin - 1);
+
+	for (int bin = 0; bin < hist.cols; bin++)
+		hist.at<signed>(2, bin) = (255.0 / (sourceImage.rows*sourceImage.cols))*hist.at<signed>(2, bin) + 0.5;
+
+	for (int y = 0; y < hsv.rows; y++)
+	{
+		for (int x = 0; x < hsv.cols; x++)
+		{
+			hsv.at<Vec3b>(y, x)[2] = saturate_cast<uchar>(hist.at<signed>(2, sourceImage.at<Vec3b>(y, x)[2]));
+		}
+	}
+
+	// Convert result image (HSV) to RGB
+	con.Convert(hsv, destinationImage, 3);
+
+	return 1;
 }
 
 int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
@@ -85,51 +109,78 @@ int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 		for (int j = 0; j < width; j++, pRow += nChannels)
 		{
 			histogram.at<signed>(0, pRow[0])++;
-			histogram.at<signed>(1, pRow[1])++;
-			histogram.at<signed>(2, pRow[2])++;
+			if (sourceImage.channels() == 3)
+			{
+				histogram.at<signed>(1, pRow[1])++;
+				histogram.at<signed>(2, pRow[2])++;
+			}
 		}
 	}
+
+	for (int i = 0; i < histogram.cols; i++)
+	{
+		printf("%d %d %d\t", histogram.at<signed>(0, i), histogram.at<signed>(1, i), histogram.at<signed>(2, i));
+	}
+	cout << endl;
+
 	return 1;
 }
 
 int ColorTransformer::DrawHistogram(const Mat & sourceImage, Mat & histImage)
 {
 	Mat histogram;
-	histImage = Mat::zeros(480, 640, CV_8UC3);
+	histImage = Mat::zeros(HIST_HEIGHT, HIST_WIDTH, CV_8UC3);
+
 	signed max_b = 0, max_g = 0, max_r = 0;
 	float coeff[3];
 	uchar color[3][3] = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
 	CalcHistogram(sourceImage, histogram);
 
+	/// Find the maximum bin of each channel
 	for (int i = 0; i < histogram.cols; i++)
 	{
 		max_b = max(max_b, histogram.at<signed>(0, i));
-		max_g = max(max_g, histogram.at<signed>(1, i));
-		max_r = max(max_r, histogram.at<signed>(2, i));
+		if (sourceImage.channels() == 3)
+		{
+			max_g = max(max_g, histogram.at<signed>(1, i));
+			max_r = max(max_r, histogram.at<signed>(2, i));
+		}
 	}
 
-	coeff[0] = 480.0 / max_b;
-	coeff[1] = 480.0 / max_g;
-	coeff[2] = 480.0 / max_r;
-
-	for (int chanel = 0; chanel < histogram.rows; chanel++)
+	/// The coefficient that multiply with value of each bin
+	/// to ensure the maximum height is the height of @histImage
+	coeff[0] = float(histImage.rows) / max_b;
+	if (sourceImage.channels() == 3)
 	{
-		float binWidth = float(histImage.cols) / (256 - 1);
-		float lastX = 0, lastY = histImage.rows;
+		coeff[1] = float(histImage.rows) / max_g;
+		coeff[2] = float(histImage.rows) / max_r;
+	}
 
-		for (int bin = 0; bin < histogram.cols; ++bin)
+	// Have 256 bins, so the distance between 2 bins is @histImage.cols / 255
+	float binWidth = float(histImage.cols) / (255);
+
+	for (int channel = 0; channel < histogram.rows; channel++)
+	{
+		/// Cordinate of the 1st bin in @histImage
+		float prev_x = 0;
+		float prev_y = histImage.rows - histogram.at<signed>(channel, 0)*coeff[channel];
+
+		for (int bin = 1; bin < histogram.cols; bin++)
 		{
 			float x = binWidth * bin;
-			float y = histImage.rows - histogram.at<signed>(chanel, bin) * coeff[chanel];
-			Vec3b color3b = Vec3b(color[chanel][0], color[chanel][1], color[chanel][2]);
+			float y = histImage.rows - histogram.at<signed>(channel, bin)*coeff[channel];
+			Vec3b color3b;
+			if (sourceImage.channels() != 1)
+				color3b = Vec3b(color[channel][0], color[channel][1], color[channel][2]);
+			else
+				color3b = Vec3b(255, 255, 255);
 
-			if (x > 0 && y > 0)
-			{
-				line(histImage, Point(lastX, lastY), Point(x, y), color3b, 1, 8);
-				lastX = x;
-				lastY = y;
-			}
+			// Draw line connect current point with previous point
+			line(histImage, Point(prev_x, prev_y), Point(x, y), color3b, 2, 8);
+			// Update previous point
+			prev_x = x;
+			prev_y = y;
 		}
 	}
 
