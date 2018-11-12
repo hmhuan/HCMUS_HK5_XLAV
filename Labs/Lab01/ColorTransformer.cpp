@@ -87,15 +87,19 @@ int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & desti
 	for (int bin = 0; bin < hist.cols; bin++)
 		hist.at<signed>(2, bin) = (255.0 / (sourceImage.rows*sourceImage.cols))*hist.at<signed>(2, bin) + 0.5;
 
-	for (int y = 0; y < hsv.rows; y++)
+	for (int y = 0; y < src.rows; y++)
 	{
-		for (int x = 0; x < hsv.cols; x++)
+		for (int x = 0; x < src.cols; x++)
 		{
-			hsv.at<Vec3b>(y, x)[2] = saturate_cast<uchar>(hist.at<signed>(2, sourceImage.at<Vec3b>(y, x)[2]));
+			if (src.channels() == 1)
+				src.at<uchar>(y, x) = saturate_cast<uchar>(hist.at<signed>(2, src.at<uchar>(y, x)));
+			else
+				hsv.at<Vec3b>(y, x)[2] = saturate_cast<uchar>(hist.at<signed>(2, src.at<Vec3b>(y, x)[2]));
 		}
 	}
 
 	if (src.channels() != 1)
+		// Convert res image (HSV) to RGB
 		con.Convert(hsv, destinationImage, 3);
 	else
 		destinationImage = src.clone();
