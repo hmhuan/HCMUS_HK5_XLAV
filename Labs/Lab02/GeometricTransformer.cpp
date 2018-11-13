@@ -35,7 +35,7 @@ BilinearInterpolate::~BilinearInterpolate()
 
 void NearestNeighborInterpolate::Interpolate(float tx, float ty, uchar * pSrc, int srcWidthStep, int nChannels, uchar * pDstRow)
 {
-	int x =round(tx), y = round(ty);
+	int x =(int)tx, y = (int)ty;
 	uchar * pSrcRow = pSrc + (x * srcWidthStep + y * nChannels);
 	
 	for (int i = 0; i < nChannels; i++)
@@ -203,7 +203,7 @@ int GeometricTransformer::Transform(const Mat & beforeImage, Mat & afterImage, A
 		{
 			x = i; y = j;
 			transformer->TransformPoint(x, y); //Tính ra giá trị của p
-			if (round(x) < sheight && round(y) < swidth && x >= 0 && y >= 0)
+			if (round(x) < sheight && round(y) < swidth && round(x) >= 0 && round(y) >= 0)
 				interpolator->Interpolate(x, y, psData, swidthStep, nChannels, pRow);
 		}
 	}
@@ -246,7 +246,7 @@ int GeometricTransformer::RotateUnkeepImage(const Mat & srcImage, Mat & dstImage
 	AffineTransform * affineTf = new AffineTransform();
 	AffineTransform * affineTf1 = new AffineTransform();
 	//Khởi tạo ảnh đích có kích thước và type giống ảnh nguồn
-	float xCenter = srcImage.rows/2, yCenter = srcImage.cols/2;
+	float xCenter = srcImage.rows*1.0f/2, yCenter = srcImage.cols * 1.0f/2;
 	dstImage.create(srcImage.rows,srcImage.cols, srcImage.type());
 
 	//Lấy tâm của ảnh thật khi quay góc angle

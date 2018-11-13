@@ -16,7 +16,7 @@ int main(int argc, char * argv[])
 	
 	int result = 0;
 
-	srcImage = imread(argv[2], -1);
+	srcImage = imread(argv[2], IMREAD_GRAYSCALE);
 
 	if (Command == "--mean")
 	{
@@ -45,14 +45,8 @@ int main(int argc, char * argv[])
 	{
 		result = ED.DetectEdge(srcImage, dstImage, 3, 3, 3); // kWidth = kHeight = 3
 	}
-	Mat sobel, laplace, median, gauss;
-	//Sobel(srcImage, sobel,srcImage.depth(), 1, 1, 3);
-	//Laplacian(srcImage, laplace, srcImage.depth(), 1);
-	GaussianBlur(srcImage, gauss, Size(3, 3), 0.5f);
+	
 	imshow("Source Image", srcImage);
-	imshow("Gauss", gauss);
-	//imshow("Sobel", sobel);
-	//imshow("Laplace", laplace);
 	if (result)
 	{
 		imshow("Destination Image", dstImage);

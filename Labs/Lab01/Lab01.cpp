@@ -15,8 +15,6 @@ int main(int argc, char * argv[]) {
 	string Command = string(argv[1]);
 	// flags < 0: Load anh voi dung dinh dang cua no
 	srcImg = imread(argv[2], -1);
-	
-	cout << srcImg.type() << " " << srcImg.depth() << " " << srcImg.channels() << "\n";
 
 	if (Command == "--rgb2gray") {
 			result = converter.Convert(srcImg, destImg, 0);
@@ -49,14 +47,12 @@ int main(int argc, char * argv[]) {
 	}
 
 	imshow("source image", srcImg);
-	//cvtColor(srcImg, hsv, );
-	//imshow("BGR", hsv);
 	if (result)
 		imshow("destination image", destImg);
-	imwrite("gray.bmp", destImg);
+
 	
 	
-	cout << destImg.type() << " " << destImg.depth() << " " << destImg.channels() << "\n";
+	
 	waitKey();
 	return 0;
 }

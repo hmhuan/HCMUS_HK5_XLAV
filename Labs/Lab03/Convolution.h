@@ -31,10 +31,6 @@ public:
 	*/
 	int DoConvolution(const Mat& sourceImage, Mat& destinationImage) 
 	{
-
-		uchar lookup[256];
-		for (int i = 0; i < 256; i++)
-			lookup[i] = (uchar)i;
 		//Kiểm tra ma trận nguồn
 		if (sourceImage.empty())
 			return 0;
@@ -47,7 +43,7 @@ public:
 		int widthStep = sourceImage.step[0];
 
 		//Tạo ảnh đích với kích thước ảnh nguồn và type là ảnh grayscale
-		destinationImage.create(height, width, CV_8UC1);
+		destinationImage.create(height, width, sourceImage.type());
 
 		//pData là con trỏ quản lý vùng nhớ ảnh
 		uchar* pData = (uchar*)destinationImage.data; // con trỏ data ảnh đích
@@ -61,26 +57,25 @@ public:
 		int n;
 		for (int y = -kHalfHeight; y <= kHalfHeight; y++)
 			for (int x = -kHalfWidth; x <= kHalfWidth; x++)
-				offsets.push_back(y*widthStep + x);
+				offsets.push_back(y * widthStep + x);
 		n = offsets.size();
 
 		float sum;
-		for (int i = 0; i < height; i++, psData += widthStep, pData += destinationImage.step[0]) {
+		for (int i = 0; i < height; i++, psData += widthStep, pData += widthStep) {
 			uchar * pRow = pData;
 			uchar * psRow = psData;
-			for (int j = 0; j < width; j++, psRow += nChannels, pRow += 1) {
+			for (int j = 0; j < width; j++, psRow += nChannels, pRow += nChannels) {
 				sum = 0.0f;
 				//Tính tích chập
 				for (int k = 0; k < n; k++)
-					sum += psRow[offsets[k]] * _kernel[n - 1 - k];
-				pRow[0] = lookup[(int)sum];//saturate_cast<uchar>(sum);
+					sum += *(psRow + offsets[k]) * _kernel[n - 1 - k];
+				pRow[0] = saturate_cast<uchar>(sum);
 			}
 		}
 
 		return 1;
-
 	};
 	Convolution() {};
-	~Convolution() {};
+	~Convolution(){};
 };
 

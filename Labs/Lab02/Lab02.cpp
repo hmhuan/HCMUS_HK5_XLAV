@@ -6,16 +6,16 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
-	//srcImg: anh nguon - dstImg: anh dich
+	//srcImg: ảnh nguồn - dstImg: ảnh đích
 	Mat srcImg, dstImg;
-	//Khởi tạo lớp GeometricTransformer
+	//Khởi tạo lớp GeometricTransformer và PixelInterpolate
 	GeometricTransformer GTf;
 	PixelInterpolate *pixInterpolate;
-	
+	//Tiến hành nhận Command, kiểu nội suy, và tên đường dẫn file ảnh
 	string Command(argv[1]), Interpolate(argv[2]), fileImg(argv[3]);
 
 	int result = 0; //biến lưu kết quả trả về sau khi xử lý
-
+	//Đọc ảnh với type = -1 (nguyên gốc ảnh)
 	srcImg = imread(fileImg, -1);
 
 	if (Command == "--zoom") {
@@ -60,13 +60,13 @@ int main(int argc, char * argv[])
 	Mat temp;
 	
 	imshow("Source Image", srcImg);
-	cout << srcImg.cols << " " << srcImg.rows << endl;
+	
 	if (result)
 	{
 		imshow("Destination Image", dstImg);
-		cout << dstImg.cols << " " << dstImg.rows << endl;
+		
 	}
-
+	
 	waitKey(0);
 	return 0;
 }

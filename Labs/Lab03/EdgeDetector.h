@@ -27,10 +27,10 @@ public:
 						1, 0, -1 };
 		float Wy[9] = {	-1, -1, -1, 
 						0, 0, 0, 
-						1, 1, 1 };
-		float WLap[9] = {1, 1, 1,
-						1, -8, 1,
 						1, 1, 1};
+		float WLap[9] = {0, 1, 0,
+						1, -4, 1,
+						0, 1, 0};
 		destinationImage.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = sourceImage.cols, height = sourceImage.rows;
@@ -52,26 +52,25 @@ public:
 			//Tạo ma trận kernel X, Y
 			for (int i = 0; i < 9; i++) 
 			{
-				if (i == 1 || i == 7)
+				if (i == 3 || i == 5)
 				{
-					Wx[i] = (Wx[i] * 2.0f) / 4.0f;
+					Wx[i] = (Wx[i] * 2.0f)/ 4.0f;
 					Wy[i] = Wy[i] / 4.0f;
 				}
-				else if (i == 3 || i == 5)
+				else if (i == 1 || i == 7)
 				{
 					Wy[i] = (Wy[i] * 2.0f) / 4.0f;
 					Wx[i] = Wx[i] / 4.0f;
 				}
-				else 
-				{
+				else {
 					Wx[i] = Wx[i] / 4.0f;
 					Wy[i] = Wy[i] / 4.0f;
 				}
 				kernelX.push_back(Wx[i]);
 				kernelY.push_back(Wy[i]);
 			}
-			fX.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
-			fY.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
+			//fX.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
+			//fY.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 			
 			//Tính ma trận fX
 			conv.SetKernel(kernelX, 3, 3);
@@ -92,9 +91,10 @@ public:
 				pyRow = pyData;
 				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels) 
 				{
-					x = pxRow[0] * BYTE_TO_FLOAT;
-					y = pyRow[0] * BYTE_TO_FLOAT;
-					sum = sqrtf(x * x + y * y);
+					sum = pxRow[0]*BYTE_TO_FLOAT + pyRow[0]*BYTE_TO_FLOAT;
+					//x = pxRow[0] * BYTE_TO_FLOAT;
+					//y = pyRow[0] * BYTE_TO_FLOAT;
+					//sum = sqrtf(x * x + y * y);
 					pRow[0] = saturate_cast<uchar>(sum);
 				}
 			}
