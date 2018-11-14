@@ -1,5 +1,9 @@
 ﻿#pragma once
 #include "Converter.h"
+#include <algorithm>
+
+constexpr auto HIST_WIDTH = 640;
+constexpr auto HIST_HEIGHT = 480;
 
 class ColorTransformer
 {

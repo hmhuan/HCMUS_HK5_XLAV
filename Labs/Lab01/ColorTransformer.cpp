@@ -99,7 +99,6 @@ int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & desti
 	}
 
 	if (src.channels() != 1)
-		// Convert res image (HSV) to RGB
 		con.Convert(hsv, destinationImage, 3);
 	else
 		destinationImage = src.clone();
@@ -132,11 +131,11 @@ int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 		}
 	}
 
-	for (int i = 0; i < histogram.cols; i++)
-	{
-		printf("%d %d %d\t", histogram.at<signed>(0, i), histogram.at<signed>(1, i), histogram.at<signed>(2, i));
-	}
-	printf("\n");
+	// for (int i = 0; i < histogram.cols; i++)
+	// {
+	// 	printf("%d %d %d\t", histogram.at<signed>(0, i), histogram.at<signed>(1, i), histogram.at<signed>(2, i));
+	// }
+	// cout << endl;
 
 	return 1;
 }
@@ -144,7 +143,7 @@ int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 int ColorTransformer::DrawHistogram(const Mat & sourceImage, Mat & histImage)
 {
 	Mat histogram;
-	histImage = Mat::zeros(480, 640, CV_8UC3);
+	histImage = Mat::zeros(HIST_HEIGHT, HIST_WIDTH, CV_8UC3);
 
 	signed max_b = 0, max_g = 0, max_r = 0;
 	float coeff[3];
