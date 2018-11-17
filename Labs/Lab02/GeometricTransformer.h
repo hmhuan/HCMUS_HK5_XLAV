@@ -19,10 +19,10 @@ public:
 		- srcWidthStep: widthstep của ảnh gốc
 		- nChannels: số kênh màu của ảnh gốc
 		- pDstRow: con trỏ của ảnh kết quả đến pixel đang muốn nội suy màu
-	
+
 	*/
 	virtual void Interpolate(
-		float tx, float ty, 
+		float tx, float ty,
 		uchar* pSrc, int srcWidthStep, int nChannels,
 		uchar* pDstRow) = 0;
 	PixelInterpolate();
@@ -36,7 +36,7 @@ class BilinearInterpolate : public PixelInterpolate
 {
 public:
 	void Interpolate(
-		float tx, float ty, 
+		float tx, float ty,
 		uchar* pSrc, int srcWidthStep, int nChannels,
 		uchar* pDstRow);
 	BilinearInterpolate();
@@ -50,7 +50,7 @@ class NearestNeighborInterpolate : public PixelInterpolate
 {
 public:
 	void Interpolate(
-		float tx, float ty, 
+		float tx, float ty,
 		uchar* pSrc, int srcWidthStep, int nChannels,
 		uchar* pDstRow);
 	NearestNeighborInterpolate();
@@ -69,10 +69,10 @@ public:
 	//xây dựng matrix transform cho phép xoay 1 góc angle quanh gốc tọa độ sau đó nhân với ma trận hiện hành
 	void Rotate(float angle);
 	//xây dựng matrix transform cho phép tỉ lệ theo hệ số sau đó nhân với ma trận hiện hành
-	void Scale(float sx, float sy);		
+	void Scale(float sx, float sy);
 	//transform 1 điểm (x,y) theo matrix transform hiện hành đã có
-	void TransformPoint(float &x, float &y); 
-	
+	void TransformPoint(float &x, float &y);
+
 	AffineTransform();
 	~AffineTransform();
 };
@@ -96,9 +96,9 @@ public:
 	 - 1: Nếu biến đổi thành công
 	*/
 	int Transform(
-		const Mat &beforeImage, 
-		Mat &afterImage, 
-		AffineTransform* transformer, 
+		const Mat &beforeImage,
+		Mat &afterImage,
+		AffineTransform* transformer,
 		PixelInterpolate* interpolator);
 
 	/*
@@ -133,17 +133,17 @@ public:
 	Hàm phóng to, thu nhỏ ảnh theo tỉ lệ cho trước
 	Tham số
 	- srcImage: ảnh input
-	- dstImage: ảnh sau khi thực hiện phép xoay	
-	- sx, sy: tỉ lệ phóng to, thu nhỏ ảnh	
+	- dstImage: ảnh sau khi thực hiện phép xoay
+	- sx, sy: tỉ lệ phóng to, thu nhỏ ảnh
 	- interpolator: biến chỉ định phương pháp nội suy màu
 	Trả về:
 	 - 0: Nếu ảnh input ko tồn tại hay ko thực hiện được phép biến đổi
 	 - 1: Nếu biến đổi thành công
 	*/
 	int Scale(
-		const Mat &srcImage, 
-		Mat &dstImage, 
-		float sx, float sy, 
+		const Mat &srcImage,
+		Mat &dstImage,
+		float sx, float sy,
 		PixelInterpolate* interpolator);
 
 	GeometricTransformer();

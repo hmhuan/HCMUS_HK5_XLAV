@@ -3,9 +3,9 @@
 #include "Convolution.h"
 #include  <math.h>
 
-void MySort(uchar a[],int n)
+void MySort(uchar a[], int n)
 {
-	for(int i=0;i< n/ 2 + 1; i++)
+	for (int i = 0; i < n / 2 + 1; i++)
 		for (int j = i + 1; j < n; j++)
 			if (a[i] > a[j])
 			{
@@ -26,12 +26,12 @@ public:
 	kWidth, kHeight: kích thước kernel
 	0: Trung bình
 	1: Trung vị
-	2: Gaussian	
+	2: Gaussian
 	Hàm trả về
-	0: nếu detect thành công
-	1: nếu detect thất bại (không đọc được ảnh input,...)
+	1: nếu detect thành công
+	0: nếu detect thất bại (không đọc được ảnh input,...)
 	*/
-	int BlurImage(const Mat& sourceImage, Mat& destinationImage, int kWidth, int kHeight, int method) 
+	int BlurImage(const Mat& sourceImage, Mat& destinationImage, int kWidth, int kHeight, int method)
 	{
 		Convolution conv;
 		vector<float> kernel;
@@ -44,14 +44,14 @@ public:
 		float sum, h;
 		uchar * pData, *psData, *pRow, *psRow;
 		int n;
-		
+
 		switch (method)
 		{
 		case 0:
 			//Tạo kernel với trường hợp lọc trung bình
 			n = kWidth * kHeight;
 			for (int i = 0; i < kWidth * kHeight; i++)
-				kernel.push_back(1.0f/n);
+				kernel.push_back(1.0f / n);
 			conv.SetKernel(kernel, kWidth, kHeight);
 			return conv.DoConvolution(sourceImage, destinationImage);
 			break;
@@ -77,11 +77,11 @@ public:
 			I = new uchar[n];
 			pData = (uchar *)destinationImage.data;
 			psData = (uchar *)sourceImage.data;
-			for (int i = 0; i < height; i++, psData += widthStep, pData += destinationImage.step[0]) 
+			for (int i = 0; i < height; i++, psData += widthStep, pData += destinationImage.step[0])
 			{
 				pRow = pData;
 				psRow = psData;
-				for (int j = 0; j < width; j++, psRow += nChannels, pRow += 1) 
+				for (int j = 0; j < width; j++, psRow += nChannels, pRow += 1)
 				{
 					//Tìm trung vị của các điểm ảnh theo kSize
 					for (int k = 0; k < n; k++)

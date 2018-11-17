@@ -57,16 +57,15 @@ int main(int argc, char * argv[])
 			result = GTf.RotateUnkeepImage(srcImg, dstImg, angle, pixInterpolate);
 		}
 	}
-	Mat temp;
-	
-	imshow("Source Image", srcImg);
-	
+
 	if (result)
 	{
+		imshow("Source Image", srcImg);
 		imshow("Destination Image", dstImg);
-		
 	}
-	
+	else
+		printf("Could not open or find the image");
+
 	waitKey(0);
 	return 0;
 }

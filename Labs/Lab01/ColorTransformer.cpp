@@ -3,6 +3,9 @@
 
 int ColorTransformer::ChangeBrightness(const Mat & sourceImage, Mat & destinationImage, uchar b)
 {
+	if (sourceImage.empty())
+		return 0;
+
 	//Tạo bảng lookup
 	uchar lookup[256];
 	for (int i = 0; i < 256; i++)
@@ -35,6 +38,9 @@ int ColorTransformer::ChangeBrightness(const Mat & sourceImage, Mat & destinatio
 
 int ColorTransformer::ChangeContrast(const Mat & sourceImage, Mat & destinationImage, float c)
 {
+	if (sourceImage.empty())
+		return 0;
+
 	uchar lookup[256];
 	for (int i = 0; i < 256; i++)
 		lookup[i] = saturate_cast<uchar>(i * c);
@@ -65,13 +71,16 @@ int ColorTransformer::ChangeContrast(const Mat & sourceImage, Mat & destinationI
 
 int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & destinationImage)
 {
+	if (sourceImage.empty())
+		return 0;
+
 	Mat src, hsv, hist;
 	Converter con;
 	src = sourceImage.clone();
 
 	if (src.channels() != 1)
 	{
-		// If source image is not grayscale, convert it (RGB) to HSV
+		// Nếu ảnh nguồn là là ảnh màu, chuyển sang HSV rồi tính histogram
 		con.Convert(src, hsv, 2);
 		CalcHistogram(hsv, hist);
 	}
@@ -80,10 +89,13 @@ int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & desti
 		CalcHistogram(src, hist);
 	}
 
-
+	// T[p] = T[p-1] + H[p]
+	// H là lược đồ độ xám
+	// T là lược đồ độ xám tích lũy
 	for (int bin = 1; bin < hist.cols; bin++)
 		hist.at<signed>(2, bin) += hist.at<signed>(2, bin - 1);
 
+	// Chuẩn hóa T về đoạn [0-255]
 	for (int bin = 0; bin < hist.cols; bin++)
 		hist.at<signed>(2, bin) = (255.0 / (sourceImage.rows*sourceImage.cols))*hist.at<signed>(2, bin) + 0.5;
 
@@ -92,13 +104,16 @@ int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & desti
 		for (int x = 0; x < src.cols; x++)
 		{
 			if (src.channels() == 1)
-				src.at<uchar>(y, x) = saturate_cast<uchar>(hist.at<signed>(2, src.at<uchar>(y, x)));
+				// Thay giá trị màu của pixel (x, y) thành giá trị đã được cân bằng
+				src.at<uchar>(y, x) = hist.at<signed>(2, src.at<uchar>(y, x));
 			else
-				hsv.at<Vec3b>(y, x)[2] = saturate_cast<uchar>(hist.at<signed>(2, src.at<Vec3b>(y, x)[2]));
+				// Thay giá trị màu tại pixel (x, y) của kênh V thành giá trị đã được cân bằng
+				hsv.at<Vec3b>(y, x)[2] = hist.at<signed>(2, src.at<Vec3b>(y, x)[2]);
 		}
 	}
 
 	if (src.channels() != 1)
+		// Nếu là ảnh màu, do lúc đầu chuyển thành HSV nên giờ chuyển về lại RGB
 		con.Convert(hsv, destinationImage, 3);
 	else
 		destinationImage = src.clone();
@@ -108,6 +123,9 @@ int ColorTransformer::HistogramEqualization(const Mat & sourceImage, Mat & desti
 
 int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 {
+	if (sourceImage.empty())
+		return 0;
+
 	histogram = Mat::zeros(3, 256, CV_32S);
 
 	int width = sourceImage.cols, height = sourceImage.rows;
@@ -142,6 +160,9 @@ int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 
 int ColorTransformer::DrawHistogram(const Mat & sourceImage, Mat & histImage)
 {
+	if (sourceImage.empty())
+		return 0;
+
 	Mat histogram;
 	histImage = Mat::zeros(HIST_HEIGHT, HIST_WIDTH, CV_8UC3);
 

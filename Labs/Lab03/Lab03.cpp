@@ -9,11 +9,11 @@ int main(int argc, char * argv[])
 {
 	Blur blurImg; // Khởi tạo lớp blurimage
 	EdgeDetector ED; // Khởi tạo lớp ED
-	
-	Mat srcImage, dstImage; 
+
+	Mat srcImage, dstImage;
 	string Command(argv[1]); //
-	
-	
+
+
 	int result = 0;
 
 	srcImage = imread(argv[2], IMREAD_GRAYSCALE);
@@ -45,13 +45,15 @@ int main(int argc, char * argv[])
 	{
 		result = ED.DetectEdge(srcImage, dstImage, 3, 3, 3); // kWidth = kHeight = 3
 	}
-	
-	imshow("Source Image", srcImage);
+
 	if (result)
 	{
+		imshow("Source Image", srcImage);
 		imshow("Destination Image", dstImage);
 	}
+	else
+		printf("Could not open or find the image");
 	waitKey(0);
-	
+
 	return 0;
 }

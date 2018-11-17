@@ -26,10 +26,10 @@ public:
 	sourceImage: ảnh input
 	destinationImage: ảnh output
 	Hàm trả về
-	0: nếu tính thành công
-	1: nếu tính thất bại (không đọc được ảnh input,...)
+	1: nếu tính thành công
+	0: nếu tính thất bại (không đọc được ảnh input,...)
 	*/
-	int DoConvolution(const Mat& sourceImage, Mat& destinationImage) 
+	int DoConvolution(const Mat& sourceImage, Mat& destinationImage)
 	{
 		//Kiểm tra ma trận nguồn
 		if (sourceImage.empty())
@@ -48,7 +48,7 @@ public:
 		//pData là con trỏ quản lý vùng nhớ ảnh
 		uchar* pData = (uchar*)destinationImage.data; // con trỏ data ảnh đích
 		uchar* psData = (uchar*)sourceImage.data; // con trỏ data ảnh nguồn
-									
+
 		//Tạo bảng offsets
 		int kHalfWidth = _kernelWidth >> 1;
 		int kHalfHeight = _kernelHeight >> 1;
@@ -76,6 +76,6 @@ public:
 		return 1;
 	};
 	Convolution() {};
-	~Convolution(){};
+	~Convolution() {};
 };
 
