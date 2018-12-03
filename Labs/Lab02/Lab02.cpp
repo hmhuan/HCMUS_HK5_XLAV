@@ -19,16 +19,17 @@ int main(int argc, char * argv[])
 	srcImg = imread(fileImg, -1);
 
 	if (Command == "--zoom") {
-		float factor = atof(argv[4]); //Factor là hệ số zoom
+		float factorX = atof(argv[4]); //FactorX là hệ số zoom theo x
+		float factorY = atof(argv[5]); //FactorY là hệ số zoom theo y
 		if (Interpolate == "--bl")
 		{
 			pixInterpolate = new BilinearInterpolate();
-			result = GTf.Scale(srcImg, dstImg, factor, factor, pixInterpolate);
+			result = GTf.Scale(srcImg, dstImg, factorX, factorY, pixInterpolate);
 		}
 		else
 		{
 			pixInterpolate = new NearestNeighborInterpolate();
-			result = GTf.Scale(srcImg, dstImg, factor, factor, pixInterpolate);
+			result = GTf.Scale(srcImg, dstImg, factorX, factorY, pixInterpolate);
 		}
 	}
 	else if (Command == "--rotate") {
@@ -57,16 +58,15 @@ int main(int argc, char * argv[])
 			result = GTf.RotateUnkeepImage(srcImg, dstImg, angle, pixInterpolate);
 		}
 	}
-	Mat temp;
-	
-	imshow("Source Image", srcImg);
-	
+
 	if (result)
 	{
+		imshow("Source Image", srcImg);
 		imshow("Destination Image", dstImg);
-		
 	}
-	
+	else
+		printf("Could not open or find the image");
+
 	waitKey(0);
 	return 0;
 }

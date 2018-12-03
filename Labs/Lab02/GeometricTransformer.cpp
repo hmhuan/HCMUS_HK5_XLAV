@@ -18,9 +18,9 @@ void BilinearInterpolate::Interpolate(float tx, float ty, uchar * pSrc, int srcW
 	uchar * pSrcRow0 = pSrc + (l * srcWidthStep + r * nChannels); // f(l, r)
 	uchar * pSrcRow1 = pSrc + ((l + 1) * srcWidthStep + r * nChannels); // f(l + 1, r)
 	uchar * pSrcRow2 = pSrc + (l * srcWidthStep + (r + 1) * nChannels); // f (l, r + 1)
-	uchar * pSrcRow3 = pSrc + ((l+1) * srcWidthStep + (r+1) * nChannels); // f(l + 1, r + 1)
+	uchar * pSrcRow3 = pSrc + ((l + 1) * srcWidthStep + (r + 1) * nChannels); // f(l + 1, r + 1)
 	for (int i = 0; i < nChannels; i++)
-		pDstRow[i] = saturate_cast<uchar>((1 - a)*(1 - b)*pSrcRow0[i] + a*(1 - b)*pSrcRow1[i] + b*(1 - a)*pSrcRow2[i] + a*b*pSrcRow3[i]);
+		pDstRow[i] = saturate_cast<uchar>((1 - a)*(1 - b)*pSrcRow0[i] + a * (1 - b)*pSrcRow1[i] + b * (1 - a)*pSrcRow2[i] + a * b*pSrcRow3[i]);
 }
 
 BilinearInterpolate::BilinearInterpolate()
@@ -35,9 +35,9 @@ BilinearInterpolate::~BilinearInterpolate()
 
 void NearestNeighborInterpolate::Interpolate(float tx, float ty, uchar * pSrc, int srcWidthStep, int nChannels, uchar * pDstRow)
 {
-	int x =(int)tx, y = (int)ty;
+	int x = (int)tx, y = (int)ty;
 	uchar * pSrcRow = pSrc + (x * srcWidthStep + y * nChannels);
-	
+
 	for (int i = 0; i < nChannels; i++)
 		pDstRow[i] = pSrcRow[i];
 }
@@ -72,7 +72,7 @@ void AffineTransform::Translate(float dx, float dy)
 	temp.at<float>(1, 2) = dy;
 	//Nhân matrix gốc với ma trận tịnh tiến
 	_matrixTransform = _matrixTransform * temp;
-	
+
 	/*for (int i = 0; i < 3; i++)
 	{
 		for (int j = 0; j < 3; j++)
@@ -88,7 +88,7 @@ void AffineTransform::Rotate(float angle)
 	//Tính sinA, cosA và chuyển góc angle về radian
 	angle = angle * M_PI / 180;
 	float sinAlpha = sinf(angle), cosAlpha = cosf(angle);
-	
+
 	//Tạo matrix temp là ma trận scale
 	Mat temp;
 	temp.create(3, 3, CV_32FC1);
@@ -143,10 +143,10 @@ void AffineTransform::Scale(float sx, float sy)
 	/*_matrixTransform.at<float>(0, 0) = sx;
 	_matrixTransform.at<float>(1, 1) = sy;*/
 }
-		
+
 void AffineTransform::TransformPoint(float & x, float & y)
 {
-	float P[3] = { x, y, 1 }, P1[3] = {0, 0, 0}; //Tạo 2 ma trận điểm ảnh nguồn và đích
+	float P[3] = { x, y, 1 }, P1[3] = { 0, 0, 0 }; //Tạo 2 ma trận điểm ảnh nguồn và đích
 	//Nhân ma trận nguồn với ma trận chuyển đổi
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++)
@@ -181,6 +181,9 @@ AffineTransform::~AffineTransform()
 
 int GeometricTransformer::Transform(const Mat & beforeImage, Mat & afterImage, AffineTransform * transformer, PixelInterpolate * interpolator)
 {
+	if (beforeImage.empty())
+		return 0;
+
 	//width là chiều rộng ảnh đích, height là chiều cao ảnh đích.
 	//swidth là chiều rộng ảnh nguồn, height là chiều cao ảnh nguồn.
 	int width = afterImage.cols, height = afterImage.rows;
@@ -192,14 +195,14 @@ int GeometricTransformer::Transform(const Mat & beforeImage, Mat & afterImage, A
 	int swidthStep = beforeImage.step[0];
 	int widthStep = afterImage.step[0];
 	//pData là con trỏ quản lý vùng nhớ ảnh đích
-	uchar* pData = (uchar*)afterImage.data; 
+	uchar* pData = (uchar*)afterImage.data;
 	// psData là con trỏ quản lý vùng nhớ ảnh nguồn
 	uchar* psData = (uchar*)beforeImage.data;
 	float x, y;
-	for (int i = 0; i < height; i++, pData += widthStep) 
+	for (int i = 0; i < height; i++, pData += widthStep)
 	{
 		uchar * pRow = pData; //Con trỏ dòng của ảnh đích
-		for (int j = 0; j < width; j++, pRow += nChannels) 
+		for (int j = 0; j < width; j++, pRow += nChannels)
 		{
 			x = i; y = j;
 			transformer->TransformPoint(x, y); //Tính ra giá trị của p
@@ -213,10 +216,13 @@ int GeometricTransformer::Transform(const Mat & beforeImage, Mat & afterImage, A
 
 int GeometricTransformer::RotateKeepImage(const Mat & srcImage, Mat & dstImage, float angle, PixelInterpolate * interpolator)
 {
+	if (srcImage.empty())
+		return 0;
+
 	//Khởi tạo đối tượng affineTf và gọi phương thức Rotate
 	AffineTransform * affineTf = new AffineTransform();
 	AffineTransform * affineTf1 = new AffineTransform();
-	
+
 	float angle1 = angle * M_PI / 180;
 	int width = srcImage.cols, height = srcImage.rows;
 	int dstWidth = width * fabs(cosf(angle1)) + height * fabs(sinf(angle1));
@@ -235,7 +241,7 @@ int GeometricTransformer::RotateKeepImage(const Mat & srcImage, Mat & dstImage, 
 	//Vì nội suy màu
 	affineTf->Rotate(-angle);
 	affineTf->Translate(-(dstImage.rows / 2 - srcX0), -(dstImage.cols / 2 - srcY0));
-	
+
 	Transform(srcImage, dstImage, affineTf, interpolator);
 
 	return 1;
@@ -243,11 +249,14 @@ int GeometricTransformer::RotateKeepImage(const Mat & srcImage, Mat & dstImage, 
 
 int GeometricTransformer::RotateUnkeepImage(const Mat & srcImage, Mat & dstImage, float angle, PixelInterpolate * interpolator)
 {
+	if (srcImage.empty())
+		return 0;
+
 	AffineTransform * affineTf = new AffineTransform();
 	AffineTransform * affineTf1 = new AffineTransform();
 	//Khởi tạo ảnh đích có kích thước và type giống ảnh nguồn
-	float xCenter = srcImage.rows*1.0f/2, yCenter = srcImage.cols * 1.0f/2;
-	dstImage.create(srcImage.rows,srcImage.cols, srcImage.type());
+	float xCenter = srcImage.rows*1.0f / 2, yCenter = srcImage.cols * 1.0f / 2;
+	dstImage.create(srcImage.rows, srcImage.cols, srcImage.type());
 
 	//Lấy tâm của ảnh thật khi quay góc angle
 	affineTf1->Rotate(angle);
@@ -255,8 +264,8 @@ int GeometricTransformer::RotateUnkeepImage(const Mat & srcImage, Mat & dstImage
 	//Quay góc -angle, và tịnh tiến theo vector (- (x0 - xCenter), - (y0 - yCenter));
 	//Vì nội suy màu
 	affineTf->Rotate(-angle);
-	affineTf->Translate(-(srcImage.rows/2 - xCenter), -(srcImage.cols/2 - yCenter));
-	
+	affineTf->Translate(-(srcImage.rows / 2 - xCenter), -(srcImage.cols / 2 - yCenter));
+
 	Transform(srcImage, dstImage, affineTf, interpolator);
 
 	return 1;

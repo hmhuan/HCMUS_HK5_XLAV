@@ -10,27 +10,30 @@ public:
 	sourceImage: ảnh input
 	destinationImage: ảnh output
 	method: phương pháp detect
-	kWidth, kHeight: kích thước kernel	
+	kWidth, kHeight: kích thước kernel
 		1: Sobel
 		2: Prewitt
-		3: Laplace		
+		3: Laplace
 	Hàm trả về
-		0: nếu detect thành công
-		1: nếu detect thất bại (không đọc được ảnh input,...)
+		1: nếu detect thành công
+		0: nếu detect thất bại (không đọc được ảnh input,...)
 	*/
 	int DetectEdge(const Mat& sourceImage, Mat& destinationImage, int kWidth, int kHeight, int method) {
+		if (sourceImage.empty())
+			return 0;
+
 		Convolution conv;
 		vector<float> kernelX, kernelY;
 		Mat fX, fY;
-		float Wx[9] = { 1, 0, -1, 
-						1, 0, -1, 
+		float Wx[9] = { 1, 0, -1,
+						1, 0, -1,
 						1, 0, -1 };
-		float Wy[9] = {	-1, -1, -1, 
-						0, 0, 0, 
-						1, 1, 1};
-		float WLap[9] = {0, 1, 0,
+		float Wy[9] = { -1, -1, -1,
+						0, 0, 0,
+						1, 1, 1 };
+		float WLap[9] = { 0, 1, 0,
 						1, -4, 1,
-						0, 1, 0};
+						0, 1, 0 };
 		destinationImage.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = sourceImage.cols, height = sourceImage.rows;
@@ -46,15 +49,15 @@ public:
 
 		const float BYTE_TO_FLOAT = 1.0f;
 
-		switch (method) 
+		switch (method)
 		{
 		case 1: //sobel k = 2
 			//Tạo ma trận kernel X, Y
-			for (int i = 0; i < 9; i++) 
+			for (int i = 0; i < 9; i++)
 			{
 				if (i == 3 || i == 5)
 				{
-					Wx[i] = (Wx[i] * 2.0f)/ 4.0f;
+					Wx[i] = (Wx[i] * 2.0f) / 4.0f;
 					Wy[i] = Wy[i] / 4.0f;
 				}
 				else if (i == 1 || i == 7)
@@ -71,27 +74,27 @@ public:
 			}
 			//fX.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
 			//fY.create(sourceImage.rows, sourceImage.cols, sourceImage.type());
-			
+
 			//Tính ma trận fX
 			conv.SetKernel(kernelX, 3, 3);
 			conv.DoConvolution(sourceImage, fX);
 			//Tính ma trận fY
 			conv.SetKernel(kernelY, 3, 3);
 			conv.DoConvolution(sourceImage, fY);
-			
+
 			pxData = (uchar*)fX.data;
 			pyData = (uchar*)fY.data;
 			pData = (uchar*)destinationImage.data;
 			//
 			float sum;
-			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep) 
+			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep)
 			{
 				pRow = pData;
 				pxRow = pxData;
 				pyRow = pyData;
-				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels) 
+				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels)
 				{
-					sum = pxRow[0]*BYTE_TO_FLOAT + pyRow[0]*BYTE_TO_FLOAT;
+					sum = pxRow[0] * BYTE_TO_FLOAT + pyRow[0] * BYTE_TO_FLOAT;
 					//x = pxRow[0] * BYTE_TO_FLOAT;
 					//y = pyRow[0] * BYTE_TO_FLOAT;
 					//sum = sqrtf(x * x + y * y);
@@ -115,18 +118,18 @@ public:
 			//Tính ma trận fY đạo hàm của ảnh nguồn theo y
 			conv.SetKernel(kernelY, 3, 3);
 			conv.DoConvolution(sourceImage, fY);
-			
+
 			//Con trỏ data của ma trận fX, fY, đích
 			pxData = (uchar*)fX.data;
 			pyData = (uchar*)fY.data;
 			pData = (uchar*)destinationImage.data;
-			
-			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep) 
+
+			for (int i = 0; i < height; i++, pxData += widthStep, pyData += widthStep, pData += widthStep)
 			{
 				pRow = pData;
 				pxRow = pxData;
 				pyRow = pyData;
-				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels) 
+				for (int j = 0; j < width; j++, pxRow += nChannels, pyRow += nChannels, pRow += nChannels)
 				{
 					//sum = (float)pxRow[0] +(float)pyRow[0]; //????
 					x = pxRow[0] * BYTE_TO_FLOAT;

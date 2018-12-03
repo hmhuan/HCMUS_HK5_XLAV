@@ -1,7 +1,10 @@
 ﻿#include "Converter.h"
 
 int Converter::RGB2GrayScale(const Mat & sourceImage, Mat & destinationImage)
-{	
+{
+	if (sourceImage.empty())
+		return 0;
+
 	uchar lookup[256];
 	for (int i = 0; i < 256; i++)
 		lookup[i] = saturate_cast<uchar>(i);
@@ -14,7 +17,7 @@ int Converter::RGB2GrayScale(const Mat & sourceImage, Mat & destinationImage)
 
 	//Tạo ảnh đích với kích thước ảnh nguồn và type là ảnh grayscale
 	destinationImage.create(height, width, CV_8UC1);
-	
+
 	//pData là con trỏ quản lý vùng nhớ ảnh
 	uchar* pData = (uchar*)destinationImage.data; // con tro chay cho anh dich
 	uchar* psData = (uchar*)sourceImage.data; // con tro chay anh nguon
@@ -35,7 +38,8 @@ int Converter::RGB2GrayScale(const Mat & sourceImage, Mat & destinationImage)
 
 int Converter::GrayScale2RGB(const Mat & sourceImage, Mat & destinationImage)
 {
-	//Cần chỉnh lại return 0/1
+	if (sourceImage.empty())
+		return 0;
 
 	int width = sourceImage.cols, height = sourceImage.rows;
 	//nChannels là số kênh màu
@@ -58,7 +62,7 @@ int Converter::GrayScale2RGB(const Mat & sourceImage, Mat & destinationImage)
 			pRow[2] = psRow[0];
 		}
 	}
-	
+
 	return 1;
 }
 //Hàm tìm max trong 3 giá trị trả về kiểu float
@@ -83,15 +87,18 @@ float min(float a, float b, float c) {
 
 int Converter::RGB2HSV(const Mat & sourceImage, Mat & destinationImage)
 {
+	if (sourceImage.empty())
+		return 0;
+
 	int width = sourceImage.cols, height = sourceImage.rows;
 	//nChannels là số kênh màu
 	int nChannels = sourceImage.channels();
 	//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 	int widthStep = sourceImage.step[0]; //so buoc cho anh nguon
-	
+
 	//Khởi tạo ảnh đích với kích thước như ảnh nguồn
 	destinationImage.create(height, width, CV_8UC3);
-	
+
 	float fR, fG, fB, H, S, Vmax, Vmin;
 
 	const float FLOAT_TO_BYTE = 255.0f;
@@ -104,7 +111,7 @@ int Converter::RGB2HSV(const Mat & sourceImage, Mat & destinationImage)
 		uchar * pRow = pData;
 		uchar * psRow = psData;
 		for (int j = 0; j < width; j++, psRow += nChannels, pRow += 3) {
-			
+
 			//Chuyen he so sang float trong khoang tu 0.0 -> 1.0
 			fB = psRow[0] * BYTE_TO_FLOAT;
 			fG = psRow[1] * BYTE_TO_FLOAT;
@@ -131,14 +138,17 @@ int Converter::RGB2HSV(const Mat & sourceImage, Mat & destinationImage)
 			pRow[1] = saturate_cast<uchar>(S * FLOAT_TO_BYTE); //S value
 			pRow[2] = saturate_cast<uchar>(Vmax * FLOAT_TO_BYTE); //V value 
 
- 		}
+		}
 	}
-	
+
 	return 1;
 }
 
 int Converter::HSV2RGB(const Mat & sourceImage, Mat & destinationImage)
 {
+	if (sourceImage.empty())
+		return 0;
+
 	int width = sourceImage.cols, height = sourceImage.rows;
 	//nChannels là số kênh màu
 	int nChannels = sourceImage.channels();
