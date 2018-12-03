@@ -130,13 +130,6 @@ int ColorTransformer::CalcHistogram(const Mat & sourceImage, Mat & histogram)
 			}
 		}
 	}
-
-	// for (int i = 0; i < histogram.cols; i++)
-	// {
-	// 	printf("%d %d %d\t", histogram.at<signed>(0, i), histogram.at<signed>(1, i), histogram.at<signed>(2, i));
-	// }
-	// cout << endl;
-
 	return 1;
 }
 
