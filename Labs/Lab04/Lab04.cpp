@@ -25,9 +25,10 @@ int main(int argc, char * argv[])
 		imshow("Canny Edge Image", dstImage);
 		imwrite(fileOut, dstImage);
 	}
+	Mat _Canny;
+	Canny(srcImage, _Canny, 20, 60);
+	imshow("Canny OpenCV", _Canny);
 	waitKey(0);
 
-	/*cout << fastAtan2(2.0, 1.0) << endl; 
-	cout << atan(-2.0 / 1.0)*180/M_PI << endl;*/
 	return 0;
 }

@@ -46,8 +46,8 @@ public:
 		destinationImage.create(height, width, sourceImage.type());
 
 		//pData là con trỏ quản lý vùng nhớ ảnh
-		uchar* pData = (uchar*)destinationImage.data; // con trỏ data ảnh đích
-		uchar* psData = (uchar*)sourceImage.data; // con trỏ data ảnh nguồn
+		uchar* pData = (uchar*)destinationImage.data, *pRow; // con trỏ data ảnh đích
+		uchar* psData = (uchar*)sourceImage.data, *psRow; // con trỏ data ảnh nguồn
 									
 		//Tạo bảng offsets
 		int kHalfWidth = _kernelWidth >> 1;
@@ -62,14 +62,14 @@ public:
 
 		float sum;
 		for (int i = 0; i < height; i++, psData += widthStep, pData += widthStep) {
-			uchar * pRow = pData;
-			uchar * psRow = psData;
-			for (int j = 0; j < width; j++, psRow += nChannels, pRow += nChannels) {
-				sum = 0.0f;
+			pRow = pData;
+			psRow = psData;
+			for (int j = 0; j < width; j++, psRow += nChannels, pRow += nChannels){
 				//Tính tích chập
+				sum = 0.0f;
 				for (int k = 0; k < n; k++)
 					sum += *(psRow + offsets[k]) * _kernel[n - 1 - k];
-				pRow[0] = saturate_cast<uchar>(sum);
+				pRow[0] = (int)sum;
 			}
 		}
 		if (destinationImage.empty())

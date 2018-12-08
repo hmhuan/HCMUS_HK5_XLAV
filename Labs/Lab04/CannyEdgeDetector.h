@@ -4,12 +4,33 @@
 #include <math.h>
 #include <vector>
 
+void Gauss(const Mat& sourceImage, Mat& destinationImage, int kSize, float sigma)
+{
+}
+
 class CannyEdgeDetector
 {
 	//ngưỡng dưới
 	int _lowThreshold;
 	//ngưỡng trên
 	int _highThreshold;
+
+	void HysteresisThresholding(const Mat& G, Mat& dstImage, int x, int y)
+	{
+		if (x < 0 || y < 0 || x >= dstImage.rows || y >= dstImage.cols)
+			return;
+		if (G.at<float>(x, y) < _lowThreshold || dstImage.at<uchar>(x, y) != 0)
+			return;
+		dstImage.at<uchar>(x, y) = 255;
+		HysteresisThresholding(G, dstImage, x - 1, y - 1);
+		HysteresisThresholding(G, dstImage, x - 1, y);
+		HysteresisThresholding(G, dstImage, x - 1, y + 1);
+		HysteresisThresholding(G, dstImage, x , y - 1);
+		HysteresisThresholding(G, dstImage, x , y + 1);
+		HysteresisThresholding(G, dstImage, x + 1, y - 1);
+		HysteresisThresholding(G, dstImage, x + 1, y);
+		HysteresisThresholding(G, dstImage, x + 1, y + 1);
+	}
 
 public:
 	/*
@@ -20,96 +41,185 @@ public:
 			1: nếu detect thành công
 			0: nếu detect không thành công
 	*/
-
-
-	int Apply(const Mat& srcImage, Mat &dstImage) 
+	int Apply(const Mat& srcImage, Mat &dstImage)
 	{
-		Mat Gray, Gx, Gy;
-		Convolution conv;
+		if (srcImage.empty())
+			return 0;
+
+		Mat Gray, Gx, Gy, G, nms; //nms: non-maximal suppression matrix
 		vector<int> offsets;
 		vector<float> kernelX, kernelY;
 		const float BYTE_TO_FLOAT = 1.0f;
+		float sum, sumX, sumY;
 		int kHalfWidth = 3 >> 1, kHalfHeight = 3 >> 1, n = 9;
-	//0. Kiểm tra ảnh nguồn và khởi tạo xảnh xám, ảnh đích, lọc Gauss
-		if (srcImage.empty())
-			return 0;
-		//Khởi tạo ảnh Gray ảnh xám và lọc Gauss kernelSize = 5x5, sigma = 1.4 
+	//0. chuyển sang ảnh xám và lọc gauss
 		if (srcImage.type() != CV_8UC1)
-			cvtColor(srcImage, Gray, COLOR_BGR2GRAY);
+			cvtColor(srcImage, Gray, CV_BGR2GRAY);
 		else
-			Gray = srcImage.clone();
-		GaussianBlur(Gray, Gray, Size(5, 5), 1.4);
+			srcImage.convertTo(Gray, CV_8UC1);
+		GaussianBlur(Gray, Gray, Size(3, 3), 0.65);
 		//Khởi tạo ảnh đích có kích thước và type giống ảnh Gray
-		dstImage.create(Gray.rows, Gray.cols, Gray.type());
+		dstImage = Mat::zeros(Gray.rows, Gray.cols, CV_8UC1);
 
-	//1. Tính đạo hàm theo x, y của ảnh xám
-		//Sobel operator: để tính đạo hàm theo x, y
-		float sobel = 4.0f;
-		float Wx[9] = { 1.0/sobel, 0.0/sobel, -1.0/sobel,
-						2.0/sobel, 0.0/sobel, -2.0/ sobel,
-						1.0/ sobel, 0.0/ sobel, -1.0/ sobel };
-		float Wy[9] = { -1.0/ sobel, -2.0/ sobel, -1.0/ sobel,
-						0.0/ sobel, 0.0/sobel, 0.0/ sobel,
-						1.0/ sobel, 2.0/ sobel, 1.0/ sobel };
-		//Tạo ma trận kernel x, kernel y
-		for (int i = 0; i < 9; i++)
-		{
-			kernelX.push_back(Wx[i]);
-			kernelY.push_back(Wy[i]);
-		}
-		Gx.create(Gray.rows, Gray.cols, Gray.type());
-		Gy.create(Gray.rows, Gray.cols, Gray.type());
-
-		//Tính ma trận Gx đạo hàm của ảnh xám theo x
-		conv.SetKernel(kernelX, 3, 3);
-		conv.DoConvolution(Gray, Gx);
-		//Tính ma trận GY đạo hàm của ảnh xám theo y
-		conv.SetKernel(kernelY, 3, 3);
-		conv.DoConvolution(Gray, Gy);
-
-	//2. 
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = dstImage.cols, height = dstImage.rows;
 		//nChannels là số kênh màu
 		int nChannels = dstImage.channels();
 		//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 		int widthStep = dstImage.step[0];
-		////Tạo bảng offsets
-		//for (int y = -kHalfHeight; y <= kHalfHeight; y++)
-		//	for (int x = -kHalfWidth; x <= kHalfWidth; x++)
-		//		offsets.push_back(y * widthStep + x);
+		//dx, dy
+		int dx[9] = {-1,-1,-1,0,0,0,1,1,1 };
+		int dy[9] = {-1,0,1,-1,0,1,-1,0,1};
+		
+		uchar *pGray = (uchar *)Gray.data, *pGrayRow;
+		uchar *pData = (uchar *)dstImage.data, *pRow;
+	//1. Tính đạo hàm theo x, y của ảnh xám , Find Magnitude
+		//Sobel operator: để tính đạo hàm theo x, y
+		float sobel = 1.0f;
+		float Wx[9] = { 1.0 / sobel, 0.0 / sobel, -1.0 / sobel,
+						2.0 / sobel, 0.0 / sobel, -2.0 / sobel,
+						1.0 / sobel, 0.0 / sobel, -1.0 / sobel };
+		float Wy[9] = { 1.0 / sobel, 2.0 / sobel, 1.0 / sobel,
+						0.0 / sobel, 0.0 / sobel, 0.0 / sobel,
+						-1.0 / sobel, -2.0 / sobel, -1.0 / sobel };
+		//Khởi tạo 3 ma trận đạo hàm theo x, theo y và gradient với bộ lọc sobel
+		Gx.create(height, width, CV_32FC1);
+		Gy.create(height, width, CV_32FC1);
+		G.create(height, width, CV_32FC1);
+		nms.create(height, width, Gray.type()); //nms là ma trận đánh dấu
 
-		
-		//Con trỏ data của ảnh đíc, psData con trỏ ảnh xám Gray
-		uchar * pData = (uchar*)dstImage.data, * pRow;
-		uchar * pxData = (uchar *)Gx.data, *pxRow;
-		uchar * pyData = (uchar *)Gy.data, *pyRow;
-		uchar * psData = (uchar*)Gray.data, *psRow;
-		
-		//G là độ lớn, Theta là góc hướng, X Y: đạo hàm theo hướng x, y
-		float G, X, Y, Theta;
-		for (int i = 0; i < height; i++, pData += widthStep, pxData += widthStep, pyData += widthStep) 
+		for (int i = 0; i < height; i++, pGray += widthStep)
 		{
-			pRow = pData;
-			pxRow = pxData;
-			pyRow = pyData;
-			for (int j = 0; j < width; j++, pRow += nChannels, pxRow += nChannels, pyRow += nChannels)
+			pGrayRow = pGray;
+			for (int j = 0; j < width; j++, pGrayRow += nChannels)
 			{
-				X = pxRow[0] * BYTE_TO_FLOAT; Y = pyRow[0] * BYTE_TO_FLOAT;
-				G = sqrtf(X * X + Y * Y);
+				sumX = sumY = 0.0f;
+				for (int k = 0; k < n; k++)
+				{
+					sumX += pGrayRow[offsets[k]] * Wx[n - 1 - k];
+					sumY += pGrayRow[offsets[k]] * Wy[n - 1 - k];
+				}
+				sum = hypotf(sumX, sumY);
+				Gx.at<float>(i, j) = sumX;
+				Gy.at<float>(i, j) = sumY;
+				G.at<float>(i, j) = sum;
+			}
+		}
+	//2. Find Orientation at each pixel and Non-maximum suppression
+		float X, Y, Theta, Gp, Ga, Gb;
+		uchar * pNms = (uchar *)nms.data, *pNmsRow;
+		for (int i = 0; i < height; i++, pNms += widthStep)
+		{
+			pNmsRow = pNms;
+			for (int j = 0; j < width; j++, pNmsRow += nChannels)
+			{
+				X = Gx.at<float>(i, j); Y = Gy.at<float>(i, j);
+				//Tính hướng
 				Theta = fastAtan2(Y, X);
-				////tobe continued
-
-
+				Gp = G.at<float>(i, j);
+				Ga = Gb = 128.0;
+				if (Theta <= 22.5 || Theta > 157.5)
+				{
+					//(x, y-1) (x, y+1)
+					if (j - 1 >= 0)
+						Ga = G.at<float>(i, j - 1);
+					if (j + 1 < width)
+						Gb = G.at<float>(i, j + 1);
+				}
+				else if (Theta > 22.5 && Theta <= 67.5)
+				{
+					//(x - 1, y - 1), (x + 1, y + 1)
+					if (j - 1 >= 0 && i - 1 >=0)
+						Ga = G.at<float>(i - 1, j - 1);
+					if (j + 1 < width && i+1 < height)
+						Gb = G.at<float>(i + 1, j + 1);
+				}
+				else if (Theta > 67.5 && Theta <= 112.5)
+				{
+					//(x-1, y), (x+1, y)
+					if (i - 1 >= 0)
+						Ga = G.at<float>(i-1, j);
+					if (i+1 < height)
+						Gb = G.at<float>(i+1, j);
+				}
+				else if (Theta > 112.5 && Theta <= 157.5)
+				{
+					//(x - 1, y + 1), (x + 1, y - 1)
+					if (j + 1 < width && i - 1 >= 0)
+						Ga = G.at<float>(i-1, j + 1);
+					if (j - 1 >= 0 && i + 1 < height)
+						Gb = G.at<float>(i+1, j - 1);
+				}
+				//Non-maximal suppression
+				//đánh dấu các điểm loại
+				if (Gp < Ga || Gp < Gb)  //??
+					pNmsRow[0] = 0;
+				else
+					pNmsRow[0] = 1;
+			}
+		}
+	//3. Loại bỏ điểm không phải biên
+		pNms = (uchar *)nms.data;
+		for (int i = 0; i < height; i++, pNms += widthStep)
+		{
+			pNmsRow = pNms;
+			for (int j = 0; j < width; j++, pNmsRow += nChannels)
+			{
+				if (pNmsRow[0] == 0)
+					G.at<float>(i, j) = 0;
 			}
 		}
 
+	//4. Hysteresis Thresholding  [L, H] Recursive
+		int * edges = new int[height * width];
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+					
+				Gp = G.at<float>(i, j);
+				if (Gp >= _highThreshold && dstImage.at<uchar>(i, j) == 0)
+				{
+					HysteresisThresholding(G, dstImage, i, j);
+
+					//non - recursive
+					/*int nEdges = 1, i1, j1;
+				edges[0] = i * widthStep + j;
+
+				do
+				{
+					nEdges--;
+					const int t = edges[nEdges];
+
+					for (int k = 0; k < 4; k++)
+					if (k != 4)
+					{
+						i1 = t / widthStep + dx[k]; j1 = t % widthStep + dy[k];
+						if (i1 >= 0 && i1 < height && j1 >= 0 && j1 < width
+						&& G.at<float>(i1, j1) >= _lowThreshold && dstImage.at<uchar>(i1, j1) == 0)
+						{
+							dstImage.at<uchar>(i1, j1) = 255;
+							edges[nEdges] = i1 * widthStep + j1;
+							nEdges++;
+						}
+					}
+				} while (nEdges > 0);*/
+				}
+			}
+		}
+
+		imshow("", Gray);
+		Gray.release();
+		G.release();
+		Gx.release();
+		Gy.release();
+		nms.release();
+		
 		if (dstImage.empty())
 			return 0;
-		imshow("Gray",Gray);
 		return 1;
 	}
-
+	
 	void setThreshold(int low, int high)
 	{
 		_lowThreshold = low;
@@ -118,7 +228,7 @@ public:
 
 	CannyEdgeDetector()
 	{
-
+		_lowThreshold = _highThreshold = 20;
 	}
 	~CannyEdgeDetector() 
 	{
