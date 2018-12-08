@@ -15,7 +15,7 @@ int Compress(const Mat& srcImage, Mat &dstImage, int k)
 	cvtImage.convertTo(cvtImage, CV_32FC1);
 	cout << cvtImage.type() << endl;
 	//Tạo svd
-	SVD svd(cvtImage);
+	SVD svd(cvtImage, SVD::FULL_UV);
 	cout << "SVD done!!!" << endl;
 	cout << svd.u.rows << " " << svd.u.cols << endl;
 	cout << svd.w.rows << " " << svd.w.cols << endl;
