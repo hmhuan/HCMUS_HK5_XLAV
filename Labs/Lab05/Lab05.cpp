@@ -39,7 +39,8 @@ int main(int argc, char * argv[])
 	else if (Command == "--sauvola") //Phân ngưỡng động Sauvola
 	{
 		//đối số: size:kích thước của sổ, hệ số k và r
-		int size = atoi(argv[3]), k = atoi(argv[4]), r = atoi(argv[5]);
+		int size = atoi(argv[3]), r = atoi(argv[5]);
+		float k = atof(argv[4]);
 		SauvolaLocalThreshold sauvola;
 		sauvola.setSauvola(k, r);
 		result = sauvola.Apply(srcImage, dstImage, Size(size, size));
@@ -59,17 +60,27 @@ int main(int argc, char * argv[])
 		imshow("Destination Image", dstImage);
 	}
 	waitKey(0);
-	/*Mat test;
-	test = Mat::zeros(5, 5, CV_32SC1);
-	int *pData = (int *)test.data;
-	pData = pData - 12;
-	int * pRow;
-	for (int i = -2; i <= 6; i++, pData += 5)
+	
+	/*Mat test, or;
+	
+	or.create(5, 5, CV_8UC1);
+	for (int i = 0; i < or.cols; i++)
 	{
-		pRow = pData;
-		for (int j = -2; j <= 6; j++, pRow += 1)
-			cout << pRow[0] << " ";
-		cout << endl;
+		for (int j = 0; j < or.rows; j++)
+		{
+			or.at<uchar>(i, j) = 1;
+			cout << (int)or.at<uchar>(i, j) << " ";
+		}
+		cout << "\n";
+	}
+		
+	createIntergral(or , test, 1, 1);
+	for (int i = 0; i < test.rows; i++)
+	{
+		for (int j = 0; j < test.cols; j++)
+			cout << test.at<float>(i, j) << " ";
+		cout << "\n";
 	}*/
+
 	return 0;
 }

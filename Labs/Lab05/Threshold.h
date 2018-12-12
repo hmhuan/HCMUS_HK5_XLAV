@@ -19,27 +19,31 @@ void MySort(uchar *&a, int n)
 			}
 }
 
-void createIntergral(const Mat& srcImage, Mat &intergral, int k)
+void createIntergral(const Mat& srcImage, Mat &intergral,int size, int k)
 {
 	//Chiều rộng, chiều cao, số "bước", số kênh ( = 1) của nahr nguồn
 	int width = srcImage.cols, height = srcImage.rows;
 	int widthStep = srcImage.step[0];
 	int nChannels = srcImage.channels();
+	int half = size >> 1;
+	int widthI = width + half * 2 + 1, heightI = height + half * 2 + 1;
 
-	//Khởi tạo intergral là ma trận 0
-	intergral = Mat::zeros(height + 1, width + 1, CV_32SC1);
-
+	//Khởi tạo intergral là ma trận 0 kích thước 2 height * 2 width 
+	intergral = Mat::zeros(heightI, widthI, CV_32FC1);
+	int  widthStepI = widthI;
 	//Con trỏ data, dòng của ma trận nguồn và ma trận intergral
 	uchar * psData = (uchar *)srcImage.data, *psRow;
-	int * pData = (int *)intergral.data, *pRow;
-	pData = pData + widthStep + 2;
-	int offsets[3] = { -1, -(widthStep + 1), -(widthStep + 1) - 1 };
+	float * pData = (float *)intergral.data, *pRow;
+	pData = pData + ((half + 1) * widthStepI + (half + 1)); 
+
+	int offsets[3] = { -1, -(widthStepI), -(widthStepI) - 1 };
 	int temp;
-	for (int i = 1; i <= height; i++, psData += widthStep, pData += (widthStep + 1))
+
+	for (int i = 0; i < height; i++, psData += widthStep, pData += widthStepI)
 	{
 		pRow = pData;
 		psRow = psData;
-		for (int j = 1; j <= width; j++, psRow += nChannels, pRow += nChannels)
+		for (int j = 0; j < width; j++, psRow += nChannels, pRow += nChannels)
 		{
 			temp = 1;
 			for (int id = 0; id < k; id++)
@@ -81,10 +85,11 @@ public:
 		//Khởi tạo ảnh đích là ảnh nguồn hoặc ảnh xám của ảnh nguồn
 		dstImage = srcImage.clone();
 		if (srcImage.type() != CV_8UC1)
-			cvtColor(srcImage, dstImage, COLOR_BGR2GRAY);
+			cvtColor(srcImage, dstImage, CV_BGR2GRAY);
 		else
 			dstImage = srcImage.clone();
-		
+		cout << dstImage.type() << endl;
+		cout << CV_8UC1 << endl;
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = dstImage.cols, height = dstImage.rows;
 		//nChannels là số kênh màu
@@ -110,7 +115,6 @@ public:
 	StaticThreshold() {}
 	~StaticThreshold() {}
 };
-
 
 //phân ngưỡng cục bộ dựa vào trung bình
 class AverageLocalThreshold
@@ -144,7 +148,7 @@ public:
 			Gray = srcImage.clone();
 		dstImage.create(Gray.rows, Gray.cols, Gray.type());
 		//Tạo ma trận ảnh Intergral
-		createIntergral(Gray, Intergral, 1);
+		createIntergral(Gray, Intergral, winSize.width, 1);
 
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = dstImage.cols, height = dstImage.rows;
@@ -152,6 +156,8 @@ public:
 		int nChannels = dstImage.channels();
 		//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 		int widthStep = dstImage.step[0];
+		//widthStepI là khoảng cách tính theo byte giữa 2 pixel cùng cột thuộc 2 dòng liên tiếp của Intergral
+		int widthI = Intergral.cols, heightI = Intergral.rows, widthStepI = Intergral.cols;
 
 		//Tạo bảng offsets
 		int kHalfWidth = winSize.width >> 1;
@@ -159,29 +165,25 @@ public:
 		vector<int> offsets;
 		int n = winSize.width * winSize.height;
 		float average;
+		//Tạo offsets cho ảnh
 		for (int y = -kHalfHeight; y <= kHalfHeight; y++)
 			for (int x = -kHalfWidth; x <= kHalfWidth; x++)
-				offsets.push_back(y * (widthStep) + x);
+				offsets.push_back(y * (widthStepI) + x);
 		int TopBot[4];
-		TopBot[0] = offsets[0];// +(-(widthStep + 1) - 1); //TL
-		TopBot[1] = offsets[winSize.width - 1];// +(-(widthStep + 1)); //TR
-		TopBot[2] = offsets[n - winSize.width];// +(-1); //BL
+		TopBot[0] = offsets[0] + (-widthStepI - 1); //TL
+		TopBot[1] = offsets[winSize.width - 1] + (-(widthStepI)); //TR
+		TopBot[2] = offsets[n - winSize.width] + (-1); //BL
 		TopBot[3] = offsets[n - 1]; //BR
 
 		//Con trỏ data và con trỏ dòng của ảnh
 		uchar *pData = (uchar *)dstImage.data, *pRow;
 		uchar *psData = (uchar *)Gray.data, *psRow;
-		int *pI = (int *)Intergral.data, *pIRow;
+		float * pI = (float *)Intergral.data, *pIRow;
 		// dịch chuyển con trỏ data của  intergral tới ô (1, 1) ứng với ma trận
-		pI = pI + (widthStep + 1) + 1;
+		pI = pI + ((kHalfHeight + 1) * widthStepI + (kHalfWidth + 1));
 		
-		//0: TopLeft, 1: TopRight, 2: BotLeft, 3: BotRight
-		//int TL = -kHalfHeight  * widthStep - kHalfWidth  + (-widthStep - 1);
-		//int TR = -kHalfHeight * widthStep + kHalfWidth + (-widthStep);
-		//int BL = kHalfHeight * widthStep - kHalfWidth + (-1);
-		//int BR = kHalfHeight * (widthStep + 1) + kHalfWidth;
 
-		for (int i = 0; i < height; i++, pData += widthStep, psData += widthStep, pI += (widthStep + 1))
+		for (int i = 0; i < height; i++, pData += widthStep, psData += widthStep, pI += widthStepI)
 		{
 			pRow = pData;
 			psRow = psData;
@@ -189,17 +191,15 @@ public:
 			for (int j = 0; j < width; j++, pRow += nChannels, psRow += nChannels, pIRow += nChannels)
 			{
 				average = 0.0f;
-				/*for (int k = 0; k < 4; k++) {
-					if ((i * j + TopBot[k]) >= -widthStep * 2 && (i * j + TopBot[k]) <= width * height) {
+				for (int k = 0; k < 4; k++) 
+				{
 						if (k == 0 || k == 3)
 							average += pIRow[TopBot[k]];
 						else
 							average -= pIRow[TopBot[k]];
-					}
-
-				}*/
-				for (int k = 0; k < n; k++)
-					average += psRow[offsets[k]];
+				}
+				/*for (int k = 0; k < n; k++)
+					average += psRow[offsets[k]];*/
 				average /= n;
 				pRow[0] = psRow[0] > (average - _C) ? 255 : 0;
 			}
@@ -334,56 +334,72 @@ public:
 		else
 			Gray = srcImage.clone();
 		dstImage.create(Gray.rows, Gray.cols, Gray.type());
-
+		
 		//Tạo ma trận ảnh Intergral và SquareIntergral
-		//createIntergral(Gray, Intergral, 1);
-		//createIntergral(Gray, SqIntergral, 2);
+		createIntergral(Gray, Intergral, winSize.width, 1);
+		createIntergral(Gray, SqIntergral, winSize.width, 2);
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = dstImage.cols, height = dstImage.rows;
 		//nChannels là số kênh màu
 		int nChannels = dstImage.channels();
 		//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 		int widthStep = dstImage.step[0];
+		//widthStepI là khoảng cách tính theo byte giữa 2 pixel cùng cột thuộc 2 dòng liên tiếp của Intergral
+		int widthI = Intergral.cols, heightI = Intergral.rows, widthStepI = Intergral.cols;
+
 		//Tạo bảng offsets
 		int kHalfWidth = winSize.width >> 1;
 		int kHalfHeight = winSize.height >> 1;
 		vector<int> offsets;
 		int n = winSize.width * winSize.height;
-		float average, standard_deviation;
+		float Mean, SqSum, standard_deviation;
+		//Tạo offsets cho ảnh
 		for (int y = -kHalfHeight; y <= kHalfHeight; y++)
 			for (int x = -kHalfWidth; x <= kHalfWidth; x++)
-				offsets.push_back(y * (widthStep) + x);
+				offsets.push_back(y * (widthStepI)+x);
+		int TopBot[4];
+		TopBot[0] = offsets[0] + (-widthStepI - 1); //TL
+		TopBot[1] = offsets[winSize.width - 1] + (-(widthStepI)); //TR
+		TopBot[2] = offsets[n - winSize.width] + (-1); //BL
+		TopBot[3] = offsets[n - 1]; //BR
 
 		//Con trỏ data và con trỏ dòng của ảnh
 		uchar *pData = (uchar *)dstImage.data, *pRow;
 		uchar *psData = (uchar *)Gray.data, *psRow;
-		//int *pI = (int *)Intergral.data, *pIRow;
+		float *pI = (float *)Intergral.data, *pIRow;
+		float *pSqI = (float *)SqIntergral.data, *pSqIRow;
 		// dịch chuyển con trỏ data của  intergral tới ô (1, 1) ứng với ma trận
-		///pI = pI + (widthStep + 1) + 1;
+		pI = pI + ((kHalfHeight + 1) * widthStepI + (kHalfWidth + 1));
+		pSqI = pSqI + ((kHalfHeight + 1) * widthStepI + (kHalfWidth + 1));
+		
 
-		//0: TopLeft, 1: TopRight, 2: BotLeft, 3: BotRight
-		//int TL = -kHalfHeight  * widthStep - kHalfWidth  + (-widthStep - 1);
-		//int TR = -kHalfHeight * widthStep + kHalfWidth + (-widthStep);
-		//int BL = kHalfHeight * widthStep - kHalfWidth + (-1);
-		//int BR = kHalfHeight * (widthStep + 1) + kHalfWidth;
-
-		for (int i = 0; i < height; i++, pData += widthStep, psData += widthStep)
+		for (int i = 0; i < height; i++, pData += widthStep, psData += widthStep, pI += widthStepI, pSqI += widthStepI)
 		{
 			pRow = pData;
 			psRow = psData;
-			for (int j = 0; j < width; j++, pRow += nChannels, psRow += nChannels)
+			pIRow = pI;
+			pSqIRow = pSqI;
+			for (int j = 0; j < width; j++, pRow += nChannels, psRow += nChannels, pIRow += nChannels, pSqIRow += nChannels)
 			{
-				average = 0.0f; standard_deviation = 0.0f;
-				for (int k = 0; k < n; k++)
-					average += psRow[offsets[k]] ;
-				average /= n;
-				for (int k = 0; k < n; k++)
+				Mean = SqSum = standard_deviation = 0.0f;
+				for (int k = 0; k < 4; k++)
 				{
-					float temp = psRow[offsets[k]] * BYTE_TO_FLOAT;
-					standard_deviation += (temp - average) * (temp - average);
+					if (k == 0 || k == 3)
+					{
+						Mean += pIRow[TopBot[k]];
+						SqSum += pSqIRow[TopBot[k]];
+					}
+						
+					else
+					{
+						Mean -= pIRow[TopBot[k]];
+						SqSum -= pSqIRow[TopBot[k]];
+					}
+						
 				}
-				standard_deviation = sqrtf(standard_deviation / (n - 1));
-				pRow[0] = psRow[0] > average * (1 + _k*(standard_deviation / _r - 1)) ? 255 : 0;
+				Mean /= n;
+				standard_deviation = sqrtf((SqSum - n * Mean * Mean) / (n - 1));
+				pRow[0] = psRow[0] > Mean * (1 + _k*(standard_deviation / _r - 1)) ? 255 : 0;
 			}
 		}
 
@@ -393,6 +409,63 @@ public:
 		return 1;
 	}
 
+	//int Apply(const Mat& srcImage, Mat &dstImage, Size winSize)
+	//{
+	//	Mat Intergral, SqIntergral, Gray;
+	//	const float BYTE_TO_FLOAT = 1.0f;
+	//	//Khởi tạo ảnh đích là ảnh xám
+	//	if (srcImage.empty())
+	//		return 0;
+	//	if (srcImage.type() != CV_8UC1)
+	//		cvtColor(srcImage, Gray, COLOR_BGR2GRAY);
+	//	else
+	//		Gray = srcImage.clone();
+	//	dstImage.create(Gray.rows, Gray.cols, Gray.type());
+	//	//width là chiều rộng ảnh, height là chiều cao ảnh
+	//	int width = dstImage.cols, height = dstImage.rows;
+	//	//nChannels là số kênh màu
+	//	int nChannels = dstImage.channels();
+	//	//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
+	//	int widthStep = dstImage.step[0];
+	//	//Tạo bảng offsets
+	//	int kHalfWidth = winSize.width >> 1;
+	//	int kHalfHeight = winSize.height >> 1;
+	//	vector<int> offsets;
+	//	int n = winSize.width * winSize.height;
+	//	float average, standard_deviation;
+	//	for (int y = -kHalfHeight; y <= kHalfHeight; y++)
+	//		for (int x = -kHalfWidth; x <= kHalfWidth; x++)
+	//			offsets.push_back(y * (widthStep) + x);
+
+	//	//Con trỏ data và con trỏ dòng của ảnh
+	//	uchar *pData = (uchar *)dstImage.data, *pRow;
+	//	uchar *psData = (uchar *)Gray.data, *psRow;
+
+	//	for (int i = 0; i < height; i++, pData += widthStep, psData += widthStep)
+	//	{
+	//		pRow = pData;
+	//		psRow = psData;
+	//		for (int j = 0; j < width; j++, pRow += nChannels, psRow += nChannels)
+	//		{
+	//			average = 0.0f; standard_deviation = 0.0f;
+	//			for (int k = 0; k < n; k++)
+	//				average += psRow[offsets[k]];
+	//			average /= n;
+	//			for (int k = 0; k < n; k++)
+	//			{
+	//				float temp = psRow[offsets[k]] * BYTE_TO_FLOAT;
+	//				standard_deviation += (temp - average) * (temp - average);
+	//			}
+	//			standard_deviation = sqrtf(standard_deviation / (n - 1));
+	//			pRow[0] = psRow[0] > (average * (1 + _k*(standard_deviation / _r - 1))) ? 255 : 0;
+	//		}
+	//	}
+
+	//	Gray.release();
+	//	if (dstImage.empty())
+	//		return 0;
+	//	return 1;
+	//}
 
 	SauvolaLocalThreshold() 
 	{ 
