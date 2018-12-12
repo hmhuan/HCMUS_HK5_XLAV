@@ -22,6 +22,7 @@ class CannyEdgeDetector
 		if (G.at<float>(x, y) < _lowThreshold || dstImage.at<uchar>(x, y) != 0)
 			return;
 		dstImage.at<uchar>(x, y) = 255;
+		// Hysteresis Threshold theo 8 hướng (lân cận 8)
 		HysteresisThresholding(G, dstImage, x - 1, y - 1);
 		HysteresisThresholding(G, dstImage, x - 1, y);
 		HysteresisThresholding(G, dstImage, x - 1, y + 1);
@@ -51,13 +52,13 @@ public:
 		vector<float> kernelX, kernelY;
 		const float BYTE_TO_FLOAT = 1.0f;
 		float sum, sumX, sumY;
-		int kHalfWidth = 3 >> 1, kHalfHeight = 3 >> 1, n = 9;
+		
 	//0. chuyển sang ảnh xám và lọc gauss
 		if (srcImage.type() != CV_8UC1)
-			cvtColor(srcImage, Gray, CV_BGR2GRAY);
+			cvtColor(srcImage, Gray, COLOR_BGR2GRAY);
 		else
 			srcImage.convertTo(Gray, CV_8UC1);
-		GaussianBlur(Gray, Gray, Size(3, 3), 0.65);
+		GaussianBlur(Gray, Gray, Size(5, 5), 0.65);
 		//Khởi tạo ảnh đích có kích thước và type giống ảnh Gray
 		dstImage = Mat::zeros(Gray.rows, Gray.cols, CV_8UC1);
 
@@ -67,10 +68,16 @@ public:
 		int nChannels = dstImage.channels();
 		//widthStep là khoảng cách tính theo byte giữa 2 pixel cùng cột trên 2 dòng kế tiếp
 		int widthStep = dstImage.step[0];
-		//dx, dy
+		// Khởi tạo dx, dy
 		int dx[9] = {-1,-1,-1,0,0,0,1,1,1 };
 		int dy[9] = {-1,0,1,-1,0,1,-1,0,1};
 		
+		// Khởi tạo offsets
+		int kHalfWidth = 3 >> 1, kHalfHeight = 3 >> 1, n = 9;
+		for (int y = -kHalfHeight; y <= kHalfHeight; y++)
+			for (int x = -kHalfWidth; x <= kHalfWidth; x++)
+				offsets.push_back(y * widthStep + x);
+
 		uchar *pGray = (uchar *)Gray.data, *pGrayRow;
 		uchar *pData = (uchar *)dstImage.data, *pRow;
 	//1. Tính đạo hàm theo x, y của ảnh xám , Find Magnitude
@@ -178,11 +185,12 @@ public:
 			{
 					
 				Gp = G.at<float>(i, j);
-				if (Gp >= _highThreshold && dstImage.at<uchar>(i, j) == 0)
+				if (Gp >= _lowThreshold && dstImage.at<uchar>(i, j) == 0)
 				{
+					//Recursive
 					HysteresisThresholding(G, dstImage, i, j);
 
-					//non - recursive
+					//non-Recursive
 					/*int nEdges = 1, i1, j1;
 				edges[0] = i * widthStep + j;
 
@@ -208,7 +216,7 @@ public:
 			}
 		}
 
-		imshow("", Gray);
+		// release các Mat đã sử dụng để giải phóng bộ nhớ
 		Gray.release();
 		G.release();
 		Gx.release();
