@@ -1,12 +1,40 @@
 ﻿#pragma once
 #include "Threshold.h"
 
-void InitializeKClusters(const Mat & srcImage, int kClusters, vector<Scalar> & clustersCenters, vector< vector<Point> > &ElementsOfKthCluster)
+struct Histogram
 {
+	int count, id;
+	void operator=(Histogram & his)
+	{
+		int temp;
+		temp = count; 
+		count = his.count;
+		his.count = temp;
+		temp = id;
+		id = his.id;
+		his.id = temp;
+	}
+};
 
+//void Sort(Histogram his[])
+//{
+//	Histogram temp;
+//	for(int i=0;i<255;i++)
+//		for(int j=i+1;j<256;j++)
+//			if (his[i].count < his[j].count)
+//			{
+//				temp = his[i];
+//				his[i] = his[j];
+//				his[j] = temp;
+//			}
+//}
+
+void InitializeKClusters(const Mat & srcImage, Histogram his[], int kClusters, vector<Scalar> & clustersCenters, vector< vector<Point> > &ElementsOfKthCluster)
+{
+	// Khởi tạo lớp random của OpenCV hỗ trợ
 	RNG random(cv::getTickCount());
 
-	for (int k = 0; k<kClusters; k++) 
+	for (int k = 0; k < kClusters; k++) 
 	{
 		// get random pixel in image to initialize cluster center
 		// Lấy ngẫu nhiên các điểm ảnh để khởi tạo centroid cluster
@@ -14,7 +42,6 @@ void InitializeKClusters(const Mat & srcImage, int kClusters, vector<Scalar> & c
 		centerKPoint.x = random.uniform(0, srcImage.rows);
 		centerKPoint.y = random.uniform(0, srcImage.cols);
 		Scalar centerPixel = srcImage.at<uchar>(centerKPoint.x, centerKPoint.y);
-
 		// get color value of pixel and save it as a center
 		// Lấy giá trị màu của điểm ảnh
 		Scalar centerK(centerPixel.val[0]);
@@ -29,78 +56,97 @@ void InitializeKClusters(const Mat & srcImage, int kClusters, vector<Scalar> & c
 //Tính Distance theo màu
 double computeColorDistance(Scalar pixel, Scalar clusterPixel) 
 {
-	//use euclidian distance to get distance
-	double distance = abs(pixel.val[0] - clusterPixel.val[0]);
+	// Sử dụng độ đo euclid để tính color distance
+	double delta = pixel.val[0] - clusterPixel.val[0];
+	double distance = sqrt(delta * delta);
 	return distance;
 }
 
-void findAssociatedCluster(const Mat &srcImg, int clusters_number, vector<Scalar> & clustersCenters, vector<vector<Point>> & ElementsOfKthCluster) 
+double computeError(double pixel, double mean)
 {
-
+	double delta = pixel - mean;
+	return delta * delta;
+}
+// Chia các điểm ảnh về các cluster tương ứng
+void UpdateClusters(const Mat &srcImg, int clusters_number, vector<Scalar> & clustersCenters, vector<vector<Point>> & ElementsOfKthCluster) 
+{
+	double * W, value = 0;
 	int height = srcImg.rows, width = srcImg.cols;
+
+	W = new double[clusters_number];
+	for (int k = 0; k < clusters_number; k++)
+		W[k] = 0.0;
 	// For each pixel, find closest cluster
 	for (int r = 0; r<height; r++) 
 	{
 		for (int c = 0; c<width; c++) 
 		{
 
-			double minDistance = INFINITY;
-			int id = 0;
-			Scalar pixel = srcImg.at<uchar>(r, c);
+			double minDistance = INFINITY; // khoảng cách màu
+			int id = 0; // Lưu lại vị trí cluster mà điểm ảnh gần nó nhất
 
-			for (int k = 0; k<clusters_number; k++) {
+			Scalar pixel = srcImg.at<uchar>(r, c); // Lấy ra điểm ảnh taiij vị trí (r, c)
+			value = pixel.val[0];
+			for (int k = 0; k < clusters_number; k++) 
+			{
 
 				Scalar centroid = clustersCenters[k];
 
-				//use color difference to get distance to cluster
+				// Tính khoảng cách màu của điểm ảnh với centroid
 				double distance = computeColorDistance(pixel, centroid);
-
-				//update to closest cluster center
-				if (distance < minDistance) {
+				// Cập nhật
+				if (distance < minDistance) 
+				{
 					minDistance = distance;
 					id = k;
 				}
 			}
-			//save pixel into associated cluster
+			// Cập nhật W[id] và Lưu điểm ảnh vào cluster id tương ứng
+			W[id] += value;
 			ElementsOfKthCluster[id].push_back(Point(r, c));
 		}
 	}
+	//Cập nhật lại giá trị centroid của cluster
+	for (int k = 0; k < clusters_number; k++)
+	{
+		W[k] /= ElementsOfKthCluster[k].size();
+		clustersCenters[k].val[0] = W[k];
+	}
 }
-
-//Cập nhật lại center của các clusters
-double updateClusterCenters(const Mat & srcImg, int clusters_number, vector<Scalar> & clustersCenters, vector<vector<Point>> & ElementsOfKthCluster, double & oldCenter, double newCenter) {
+// Cập nhật lại center của các Clusters
+// Trả về giá trị là độ chênh lệch giữa 2 giá trị lỗi trước và hiện hành
+double ErrorFunction(const Mat & srcImg, int clusters_number, vector<Scalar> & clustersCenters, vector<vector<Point>> & ElementsOfKthCluster, double & oldError) {
 
 	double diffChange;
+	double newError = 0;
+	
+	// Update các centroid của các clusters
+	//for (int k = 0; k < clusters_number; k++) 
+	//{
+	//	vector<Point> KthCluster = ElementsOfKthCluster[k];
+	//	double newMean = 0;
+	//	// Tính lại giá trị mean của cluster thứ k
+	//	for (int i = 0; i<KthCluster.size(); i++) 
+	//		newMean += srcImg.at<uchar>(KthCluster[i].x, KthCluster[i].y);
+	//	newMean /= KthCluster.size();
+	//	Scalar newPixel(newMean);
+	//	clustersCenters[k] = newPixel;
+	//}
 
-	//adjust cluster center to mean of associated pixels
-	for (int k = 0; k<clusters_number; k++) {
-
+	// Tính lại Error
+	for (int k = 0; k < clusters_number; k++)
+	{
+		// Error = Sigma (k = 0 -> nclusters) sigma (các phần tử - mean) ^ 2;
 		vector<Point> KthCluster = ElementsOfKthCluster[k];
-		double newMean = 0;
-
-		//compute mean values for 3 channels
-		for (int i = 0; i<KthCluster.size(); i++) {
-			Scalar pixel = srcImg.at<uchar>(KthCluster[i].x, KthCluster[i].y);
-			newMean += pixel.val[0];
-		}
-
-		newMean /= KthCluster.size();
-
-		//assign new color value to cluster center
-		Scalar newPixel(newMean);
-
-		//compute distance between the old and new values
-		newCenter += computeColorDistance(newPixel, clustersCenters[k]);
-		clustersCenters[k] = newPixel;
-
+		double mean = clustersCenters[k].val[0];
+		for (int i = 0; i < KthCluster.size(); i++)
+			newError += computeError(srcImg.at<uchar>(KthCluster[i].x, KthCluster[i].y), mean);
 	}
-
-	newCenter /= clusters_number;
-
-	//get difference between previous iteration change
-	diffChange = abs(oldCenter - newCenter);
-	cout << "diffChange is: " << diffChange << endl;
-	oldCenter = newCenter;
+	// Tính độ chênh lệch giữa giá trị lỗi
+	diffChange = abs(oldError - newError);
+	//cout << "Error change is: " << (int)diffChange << endl;
+	printf("Error change is: %0.4f\n", diffChange);
+	oldError = newError;
 
 	return diffChange;
 }
@@ -127,51 +173,48 @@ public:
 		Mat Gray;
 		// Danh sách các giá trị centroid của các clusters
 		vector<Scalar> clustersCenters;
-		// Danh sách 
+		// Danh sách chứa các điểm thuộc Cluster thứ k
 		vector< vector<Point> > ElementsOfKthCluster;
-		//Khởi tạo ảnh đích và ảnh xám của ảnh nguồn
-
+		Histogram his[256];
 		double epsilon = 0.05;
-		double oldCenter = INFINITY;
-		double newCenter = 0;
-		double diffChange = oldCenter - newCenter;
-
+		double oldError = INFINITY;
+		double newError = 0;
+		double diffChange = oldError - newError;
+		//Khởi tạo ảnh đích và ảnh xám của ảnh nguồn
 		if (srcImage.empty())
 			return 0;
 		if (srcImage.type() != CV_8UC1)
 			cvtColor(srcImage, Gray, CV_BGR2GRAY);
 		else
 			Gray = srcImage.clone();
+		imshow("Gray", Gray);
 		dstImage.create(Gray.rows, Gray.cols, Gray.type());
 		
-		InitializeKClusters(Gray, _numClusters, clustersCenters, ElementsOfKthCluster);
+		// Khởi tạo các centroids thuộc các Clusters
+		InitializeKClusters(Gray, his, _numClusters, clustersCenters, ElementsOfKthCluster);
 
-		//iterate until cluster centers nearly stop moving (using threshold)
+		// Lặp đến khi mức độ thay đổi nhỏ hơn epsilon
 		while (diffChange > epsilon) 
 		{
-			//reset change
-			newCenter = 0;
-
-			//clear associated pixels for each cluster
 			for (int k = 0; k<_numClusters; k++) 
 				ElementsOfKthCluster[k].clear();
 
-			//find all closest pixel to cluster centers
-			findAssociatedCluster(Gray, _numClusters, clustersCenters, ElementsOfKthCluster);
+			// Cập nhật cluster và centroid
+			UpdateClusters(Gray, _numClusters, clustersCenters, ElementsOfKthCluster);
 
-			//recompute cluster centers values
-			diffChange = updateClusterCenters(srcImage, _numClusters, clustersCenters, ElementsOfKthCluster, oldCenter, newCenter);
+			// Tính độ lệch hàm lỗi
+			diffChange = ErrorFunction(srcImage, _numClusters, clustersCenters, ElementsOfKthCluster, oldError);
 		}
 		// Lưu ra ảnh đích
-		for (int k = 0; k<_numClusters; k++)
+		for (int k = 0; k < _numClusters; k++)
 		{
 			vector<Point> ClusterKth = ElementsOfKthCluster[k];
-			int bin = 255 / _numClusters * k;
+			int bin = 255 / _numClusters * (k + 1);
 			//for each pixel in cluster change color to fit cluster
 			for (int i = 0; i < ClusterKth.size(); i++)
-				dstImage.at<uchar>(ClusterKth[i].x, ClusterKth[i].y) = bin;
+				dstImage.at<uchar>(ClusterKth[i].x, ClusterKth[i].y) = clustersCenters[k].val[0];
 		}
-
+		Gray.release();
 		if (dstImage.empty())
 			return 0;
 		return 1;

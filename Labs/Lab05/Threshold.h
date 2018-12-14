@@ -6,7 +6,7 @@
 using namespace cv;
 using namespace std;
 
-
+// Hàm để sort lấy giá trị median
 void MySort(uchar *&a, int n)
 {
 	for (int i = 0; i< n / 2 + 1; i++)
@@ -19,6 +19,7 @@ void MySort(uchar *&a, int n)
 			}
 }
 
+// Hàm tạo ma trận intergral theo cấp
 void createIntergral(const Mat& srcImage, Mat &intergral,int size, int k)
 {
 	//Chiều rộng, chiều cao, số "bước", số kênh ( = 1) của nahr nguồn
@@ -88,8 +89,7 @@ public:
 			cvtColor(srcImage, dstImage, CV_BGR2GRAY);
 		else
 			dstImage = srcImage.clone();
-		cout << dstImage.type() << endl;
-		cout << CV_8UC1 << endl;
+		
 		//width là chiều rộng ảnh, height là chiều cao ảnh
 		int width = dstImage.cols, height = dstImage.rows;
 		//nChannels là số kênh màu
@@ -198,8 +198,6 @@ public:
 						else
 							average -= pIRow[TopBot[k]];
 				}
-				/*for (int k = 0; k < n; k++)
-					average += psRow[offsets[k]];*/
 				average /= n;
 				pRow[0] = psRow[0] > (average - _C) ? 255 : 0;
 			}
@@ -350,13 +348,19 @@ public:
 		//Tạo bảng offsets
 		int kHalfWidth = winSize.width >> 1;
 		int kHalfHeight = winSize.height >> 1;
-		vector<int> offsets;
+		vector<int> offsets, dx, dy;
 		int n = winSize.width * winSize.height;
 		float Mean, SqSum, standard_deviation;
+		// Tạo dx, dy
 		//Tạo offsets cho ảnh
 		for (int y = -kHalfHeight; y <= kHalfHeight; y++)
 			for (int x = -kHalfWidth; x <= kHalfWidth; x++)
+			{
+				dx.push_back(y);
+				dy.push_back(x);
 				offsets.push_back(y * (widthStepI)+x);
+			}
+				
 		int TopBot[4];
 		TopBot[0] = offsets[0] + (-widthStepI - 1); //TL
 		TopBot[1] = offsets[winSize.width - 1] + (-(widthStepI)); //TR
@@ -373,13 +377,13 @@ public:
 		pSqI = pSqI + ((kHalfHeight + 1) * widthStepI + (kHalfWidth + 1));
 		
 
-		for (int i = 0; i < height; i++, pData += widthStep, psData += widthStep, pI += widthStepI, pSqI += widthStepI)
+		for (int i = 0; i < height - kHalfHeight; i++, pData += widthStep, psData += widthStep, pI += widthStepI, pSqI += widthStepI)
 		{
 			pRow = pData;
 			psRow = psData;
 			pIRow = pI;
 			pSqIRow = pSqI;
-			for (int j = 0; j < width; j++, pRow += nChannels, psRow += nChannels, pIRow += nChannels, pSqIRow += nChannels)
+			for (int j = 0; j < width - kHalfWidth; j++, pRow += nChannels, psRow += nChannels, pIRow += nChannels, pSqIRow += nChannels)
 			{
 				Mean = SqSum = standard_deviation = 0.0f;
 				for (int k = 0; k < 4; k++)
@@ -389,7 +393,6 @@ public:
 						Mean += pIRow[TopBot[k]];
 						SqSum += pSqIRow[TopBot[k]];
 					}
-						
 					else
 					{
 						Mean -= pIRow[TopBot[k]];
@@ -399,9 +402,44 @@ public:
 				}
 				Mean /= n;
 				standard_deviation = sqrtf((SqSum - n * Mean * Mean) / (n - 1));
+				
 				pRow[0] = psRow[0] > Mean * (1 + _k*(standard_deviation / _r - 1)) ? 255 : 0;
 			}
 		}
+		// Xử lý cho cạnh đáy ảnh
+		for (int i = height - kHalfHeight; i < height; i++)
+			for (int j = 0; j < width; j++)
+			{
+				SqSum = Mean = 0;
+				float val;
+				for (int k = 0; k < n; k++)
+					if (i + dx[k] >= 0 && i + dx[k] < height && j + dy[k] >= 0 && j + dy[k] < width)
+					{
+						val = Gray.at<uchar>(i + dx[k], j + dy[k]);
+						Mean += val;
+						SqSum += val * val;
+					}
+				Mean /= n;
+				standard_deviation = sqrtf((SqSum - n * Mean * Mean) / (n - 1));
+				dstImage.at<uchar>(i, j) = val > Mean * (1 + _k*(standard_deviation / _r - 1)) ? 255 : 0;
+			}
+		// Xử lý cho cạnh bên phải ảnh
+		for (int j = width - kHalfWidth; j < width; j++)
+			for (int i = 0; i < height; i++)
+			{
+				SqSum = Mean = 0;
+				float val;
+				for (int k = 0; k < n; k++)
+					if (i + dx[k] >= 0 && i + dx[k] < height && j + dy[k] >= 0 && j + dy[k] < width)
+					{
+						val = Gray.at<uchar>(i + dx[k], j + dy[k]);
+						Mean += val;
+						SqSum += val * val;
+					}
+				Mean /= n;
+				standard_deviation = sqrtf((SqSum - n * Mean * Mean) / (n - 1));
+				dstImage.at<uchar>(i, j) = val > (Mean * (1 + _k*(standard_deviation / _r - 1))) ? 255 : 0;
+			}
 
 		Gray.release();
 		if (dstImage.empty())
@@ -436,11 +474,9 @@ public:
 	//	for (int y = -kHalfHeight; y <= kHalfHeight; y++)
 	//		for (int x = -kHalfWidth; x <= kHalfWidth; x++)
 	//			offsets.push_back(y * (widthStep) + x);
-
 	//	//Con trỏ data và con trỏ dòng của ảnh
 	//	uchar *pData = (uchar *)dstImage.data, *pRow;
 	//	uchar *psData = (uchar *)Gray.data, *psRow;
-
 	//	for (int i = 0; i < height; i++, pData += widthStep, psData += widthStep)
 	//	{
 	//		pRow = pData;
@@ -460,7 +496,6 @@ public:
 	//			pRow[0] = psRow[0] > (average * (1 + _k*(standard_deviation / _r - 1))) ? 255 : 0;
 	//		}
 	//	}
-
 	//	Gray.release();
 	//	if (dstImage.empty())
 	//		return 0;

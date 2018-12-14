@@ -4,10 +4,6 @@
 #include <math.h>
 #include <vector>
 
-void Gauss(const Mat& sourceImage, Mat& destinationImage, int kSize, float sigma)
-{
-}
-
 class CannyEdgeDetector
 {
 	//ngưỡng dưới
@@ -15,11 +11,14 @@ class CannyEdgeDetector
 	//ngưỡng trên
 	int _highThreshold;
 
+	// Hàm đệ quy phân ngưỡng
 	void HysteresisThresholding(const Mat& G, Mat& dstImage, int x, int y)
 	{
-		if (x < 0 || y < 0 || x >= dstImage.rows || y >= dstImage.cols)
+		// Kiểm tra xem x, y có vượt quá giới hạn không
+		if (x < 0 || y < 0 || x >= dstImage.rows || y >= dstImage.cols || dstImage.at<uchar>(x, y) != 0)
 			return;
-		if (G.at<float>(x, y) < _lowThreshold || dstImage.at<uchar>(x, y) != 0)
+		//G[x][y] đã bị loại bỏ hay dstImage[x][y] đã được đi qua
+		if (G.at<float>(x, y) < _lowThreshold )
 			return;
 		dstImage.at<uchar>(x, y) = 255;
 		// Hysteresis Threshold theo 8 hướng (lân cận 8)
@@ -58,7 +57,7 @@ public:
 			cvtColor(srcImage, Gray, COLOR_BGR2GRAY);
 		else
 			srcImage.convertTo(Gray, CV_8UC1);
-		GaussianBlur(Gray, Gray, Size(5, 5), 0.65);
+		GaussianBlur(Gray, Gray, Size(5, 5), 0.65f);
 		//Khởi tạo ảnh đích có kích thước và type giống ảnh Gray
 		dstImage = Mat::zeros(Gray.rows, Gray.cols, CV_8UC1);
 
@@ -83,9 +82,9 @@ public:
 	//1. Tính đạo hàm theo x, y của ảnh xám , Find Magnitude
 		//Sobel operator: để tính đạo hàm theo x, y
 		float sobel = 1.0f;
-		float Wx[9] = { 1.0 / sobel, 0.0 / sobel, -1.0 / sobel,
-						2.0 / sobel, 0.0 / sobel, -2.0 / sobel,
-						1.0 / sobel, 0.0 / sobel, -1.0 / sobel };
+		float Wx[9] = { -1.0 / sobel, 0.0 / sobel, 1.0 / sobel,
+						-2.0 / sobel, 0.0 / sobel, 2.0 / sobel,
+						-1.0 / sobel, 0.0 / sobel, 1.0 / sobel };
 		float Wy[9] = { 1.0 / sobel, 2.0 / sobel, 1.0 / sobel,
 						0.0 / sobel, 0.0 / sobel, 0.0 / sobel,
 						-1.0 / sobel, -2.0 / sobel, -1.0 / sobel };
@@ -94,7 +93,7 @@ public:
 		Gy.create(height, width, CV_32FC1);
 		G.create(height, width, CV_32FC1);
 		nms.create(height, width, Gray.type()); //nms là ma trận đánh dấu
-
+		// Tính đạo hàm theo hướng x, y và độ lớn gradiant ảnh
 		for (int i = 0; i < height; i++, pGray += widthStep)
 		{
 			pGrayRow = pGray;
@@ -106,7 +105,7 @@ public:
 					sumX += pGrayRow[offsets[k]] * Wx[n - 1 - k];
 					sumY += pGrayRow[offsets[k]] * Wy[n - 1 - k];
 				}
-				sum = hypotf(sumX, sumY);
+				sum = hypot(sumX, sumY);
 				Gx.at<float>(i, j) = sumX;
 				Gy.at<float>(i, j) = sumY;
 				G.at<float>(i, j) = sum;
@@ -125,7 +124,9 @@ public:
 				Theta = fastAtan2(Y, X);
 				Gp = G.at<float>(i, j);
 				Ga = Gb = 128.0;
-				if (Theta <= 22.5 || Theta > 157.5)
+				// chia làm 8 dir 
+				float dir = (float)(fmod(Theta + 180, 180) / 180) * 8;
+				if (dir <= 1 || dir > 7)
 				{
 					//(x, y-1) (x, y+1)
 					if (j - 1 >= 0)
@@ -133,33 +134,33 @@ public:
 					if (j + 1 < width)
 						Gb = G.at<float>(i, j + 1);
 				}
-				else if (Theta > 22.5 && Theta <= 67.5)
-				{
-					//(x - 1, y - 1), (x + 1, y + 1)
-					if (j - 1 >= 0 && i - 1 >=0)
-						Ga = G.at<float>(i - 1, j - 1);
-					if (j + 1 < width && i+1 < height)
-						Gb = G.at<float>(i + 1, j + 1);
-				}
-				else if (Theta > 67.5 && Theta <= 112.5)
-				{
-					//(x-1, y), (x+1, y)
-					if (i - 1 >= 0)
-						Ga = G.at<float>(i-1, j);
-					if (i+1 < height)
-						Gb = G.at<float>(i+1, j);
-				}
-				else if (Theta > 112.5 && Theta <= 157.5)
+				else if (dir > 1 && dir <= 3)
 				{
 					//(x - 1, y + 1), (x + 1, y - 1)
 					if (j + 1 < width && i - 1 >= 0)
-						Ga = G.at<float>(i-1, j + 1);
+						Ga = G.at<float>(i - 1, j + 1);
 					if (j - 1 >= 0 && i + 1 < height)
-						Gb = G.at<float>(i+1, j - 1);
+						Gb = G.at<float>(i + 1, j - 1);
+				}
+				else if (dir > 3 && dir <= 5)
+				{
+					//(x-1, y), (x+1, y)
+					if (i - 1 >= 0)
+						Ga = G.at<float>(i - 1, j);
+					if (i + 1 < height)
+						Gb = G.at<float>(i + 1, j);
+				}
+				else if (dir > 5 && dir <= 7)
+				{
+					//(x - 1, y - 1), (x + 1, y + 1)
+					if (j - 1 >= 0 && i - 1 >= 0)
+						Ga = G.at<float>(i - 1, j - 1);
+					if (j + 1 < width && i + 1 < height)
+						Gb = G.at<float>(i + 1, j + 1);
 				}
 				//Non-maximal suppression
-				//đánh dấu các điểm loại
-				if (Gp < Ga || Gp < Gb)  //??
+				//đánh dấu các điểm loại nếu điểm đang xét nhỏ hơn một trong 2 điểm hướng
+				if (Gp < Ga || Gp < Gb)
 					pNmsRow[0] = 0;
 				else
 					pNmsRow[0] = 1;
@@ -185,33 +186,32 @@ public:
 			{
 					
 				Gp = G.at<float>(i, j);
-				if (Gp >= _lowThreshold && dstImage.at<uchar>(i, j) == 0)
+				if (Gp >= _highThreshold && dstImage.at<uchar>(i, j) == 0)
 				{
 					//Recursive
 					HysteresisThresholding(G, dstImage, i, j);
 
 					//non-Recursive
 					/*int nEdges = 1, i1, j1;
-				edges[0] = i * widthStep + j;
+					edges[0] = i * widthStep + j;
 
-				do
-				{
-					nEdges--;
-					const int t = edges[nEdges];
-
-					for (int k = 0; k < 4; k++)
-					if (k != 4)
+					do
 					{
-						i1 = t / widthStep + dx[k]; j1 = t % widthStep + dy[k];
-						if (i1 >= 0 && i1 < height && j1 >= 0 && j1 < width
-						&& G.at<float>(i1, j1) >= _lowThreshold && dstImage.at<uchar>(i1, j1) == 0)
+						nEdges--;
+						const int t = edges[nEdges];
+
+						for (int k = 0; k < 9; k++)
 						{
-							dstImage.at<uchar>(i1, j1) = 255;
-							edges[nEdges] = i1 * widthStep + j1;
-							nEdges++;
+							i1 = t / widthStep + dx[k]; j1 = t % widthStep + dy[k];
+							if (i1 >= 0 && i1 < height && j1 >= 0 && j1 < width
+							&& G.at<float>(i1, j1) >= _lowThreshold && dstImage.at<uchar>(i1, j1) == 0)
+							{
+								dstImage.at<uchar>(i1, j1) = 255;
+								edges[nEdges] = i1 * widthStep + j1;
+								nEdges++;
+							}
 						}
-					}
-				} while (nEdges > 0);*/
+					} while (nEdges > 0);*/
 				}
 			}
 		}
